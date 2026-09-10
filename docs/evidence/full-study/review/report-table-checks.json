@@ -1,0 +1,202 @@
+{
+  "fp32": {
+    "elapsed_seconds": {
+      "mean": 1.3883084813391582,
+      "min": 1.2584805830847472,
+      "max": 1.6305262921378016
+    },
+    "gradient_rounding_cosine": 0.9999999999999986,
+    "weight_rounding_gradient_cosine": 0.9999999999999986,
+    "total_gradient_cosine": 0.9999999999999986,
+    "total_gradient_mse": 0.0,
+    "initial_calibration_seconds": 0.0,
+    "reselection_seconds": 0.0,
+    "selection_seconds": 0.0,
+    "relu_sign_change_percent": 0.0
+  },
+  "fixed-e4m3": {
+    "elapsed_seconds": {
+      "mean": 8.519926782451673,
+      "min": 7.464162249816582,
+      "max": 10.509604207938537
+    },
+    "gradient_rounding_cosine": 0.9996422301602306,
+    "weight_rounding_gradient_cosine": 0.054025517145255574,
+    "total_gradient_cosine": 0.053699032876849295,
+    "total_gradient_mse": 2.0285976717206967e-05,
+    "initial_calibration_seconds": 0.0,
+    "reselection_seconds": 0.0,
+    "selection_seconds": 0.0,
+    "relu_sign_change_percent": 0.6383825231481481,
+    "weight_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 2930.2472429922013,
+      "zeroed": 1836,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 0.0001220703125,
+      "max_scale": 0.001953125,
+      "mse": 8.491993401125026e-06,
+      "zeroed_percent": 0.0005320813771517997
+    },
+    "gradient_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 4.435241845014595,
+      "zeroed": 57136,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 2.9103830456733704e-11,
+      "max_scale": 0.00390625,
+      "mse": 1.2853538065885917e-08,
+      "zeroed_percent": 0.016558279719469077
+    }
+  },
+  "fixed-e5m2": {
+    "elapsed_seconds": {
+      "mean": 8.548882201236362,
+      "min": 7.734588457969949,
+      "max": 10.152971707982942
+    },
+    "gradient_rounding_cosine": 0.9987141563311801,
+    "weight_rounding_gradient_cosine": 0.3221818988102144,
+    "total_gradient_cosine": 0.32370946257065364,
+    "total_gradient_mse": 8.736200518621457e-05,
+    "initial_calibration_seconds": 0.0,
+    "reselection_seconds": 0.0,
+    "selection_seconds": 0.0,
+    "relu_sign_change_percent": 1.3938621238425926,
+    "weight_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 11765.513228859703,
+      "zeroed": 0,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 9.5367431640625e-07,
+      "max_scale": 3.0517578125e-05,
+      "mse": 3.4097006980987954e-05,
+      "zeroed_percent": 0.0
+    },
+    "gradient_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 21.837074537839623,
+      "zeroed": 621,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 9.094947017729282e-13,
+      "max_scale": 3.0517578125e-05,
+      "mse": 6.328486216263729e-08,
+      "zeroed_percent": 0.00017996870109546166
+    }
+  },
+  "fixed-hybrid": {
+    "elapsed_seconds": {
+      "mean": 8.674619226936354,
+      "min": 7.534728500060737,
+      "max": 9.315217333845794
+    },
+    "gradient_rounding_cosine": 0.9986673788836062,
+    "weight_rounding_gradient_cosine": 0.3393350938629043,
+    "total_gradient_cosine": 0.33844803421925074,
+    "total_gradient_mse": 2.381124874271767e-05,
+    "initial_calibration_seconds": 0.0,
+    "reselection_seconds": 0.0,
+    "selection_seconds": 0.0,
+    "relu_sign_change_percent": 0.6212022569444444,
+    "weight_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 2923.908862107717,
+      "zeroed": 1764,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 0.0001220703125,
+      "max_scale": 0.00390625,
+      "mse": 8.473624477214737e-06,
+      "zeroed_percent": 0.0005112154407929056
+    },
+    "gradient_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 17.25452608340572,
+      "zeroed": 133,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 9.094947017729282e-13,
+      "max_scale": 3.0517578125e-05,
+      "mse": 5.0004422661003076e-08,
+      "zeroed_percent": 3.854402132962383e-05
+    }
+  },
+  "calibrated": {
+    "elapsed_seconds": {
+      "mean": 8.466327296272437,
+      "min": 7.577913915971294,
+      "max": 8.848898333963007
+    },
+    "gradient_rounding_cosine": 0.9999146105227872,
+    "weight_rounding_gradient_cosine": 0.677802066905583,
+    "total_gradient_cosine": 0.6779341671426775,
+    "total_gradient_mse": 5.955879513781342e-06,
+    "initial_calibration_seconds": 0.006496199109177623,
+    "reselection_seconds": 0.0,
+    "selection_seconds": 0.006496199109177623,
+    "relu_sign_change_percent": 0.32032154224537035,
+    "weight_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 733.323184442449,
+      "zeroed": 448470,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 0.0001220703125,
+      "max_scale": 0.0625,
+      "mse": 2.125204846816348e-06,
+      "zeroed_percent": 0.12996870109546166
+    },
+    "gradient_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 1.1794017564659625,
+      "zeroed": 6460935,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 1.862645149230957e-09,
+      "max_scale": 0.0625,
+      "mse": 3.41796138777593e-09,
+      "zeroed_percent": 1.8724091462354373
+    }
+  },
+  "adaptive": {
+    "elapsed_seconds": {
+      "mean": 8.525472611137149,
+      "min": 7.575292958179489,
+      "max": 9.202484625158831
+    },
+    "gradient_rounding_cosine": 0.9999139678971714,
+    "weight_rounding_gradient_cosine": 0.4207774163168817,
+    "total_gradient_cosine": 0.4209297913402391,
+    "total_gradient_mse": 7.147721105187957e-06,
+    "initial_calibration_seconds": 0.006496199109177623,
+    "reselection_seconds": 0.0992417437567686,
+    "selection_seconds": 0.10573794286594623,
+    "relu_sign_change_percent": 0.3119574652777778,
+    "weight_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 732.5176135238751,
+      "zeroed": 452453,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 0.0001220703125,
+      "max_scale": 0.0625,
+      "mse": 2.122870264660856e-06,
+      "zeroed_percent": 0.13112299310264883
+    },
+    "gradient_rounding": {
+      "elements": 345060000,
+      "squared_error_sum": 1.1753371796294654,
+      "zeroed": 6366027,
+      "clipped": 0,
+      "array_events": 576000,
+      "min_scale": 2.3283064365386963e-10,
+      "max_scale": 0.0625,
+      "mse": 3.4061820542209047e-09,
+      "zeroed_percent": 1.8449043644583552
+    }
+  }
+}

@@ -1,0 +1,41 @@
+import csv
+import hashlib
+import json
+import statistics
+from collections import defaultdict
+from pathlib import Path
+p=Path('/Users/neeraj/src/zomglings/afloat/runs/full-study.NzhhwC')
+out=Path(__file__).parent
+finals=[]; activations=[]
+for seed in range(3):
+    finals+=json.loads((p/f'seed-{seed}/summary.json').read_text())['final_metrics']
+    for target in ('linear','kink','plateau','detail','bump','composition'):
+        for mode in ('fp32','fixed-e4m3','fixed-e5m2','fixed-hybrid','calibrated','adaptive'):
+            group=p/f'seed-{seed}'/target/f'seed-{seed}'/mode
+            activations += [{**json.loads(s),'mode':mode} for s in (group/'activations.jsonl').read_text().splitlines() if json.loads(s)['step']==2000]
+rounding=defaultdict(lambda: {'elements':0,'squared_error_sum':0.,'zeroed':0,'clipped':0,'array_events':0,'min_scale':float('inf'),'max_scale':0})
+for seed in range(3):
+ for target in ('linear','kink','plateau','detail','bump','composition'):
+  for mode in ('fixed-e4m3','fixed-e5m2','fixed-hybrid','calibrated','adaptive'):
+   path=p/f'seed-{seed}'/target/f'seed-{seed}'/mode/'formats.jsonl'
+   with path.open() as stream:
+    for line in stream:
+     r=json.loads(line); g=rounding[mode,r['array'].split(':')[0]]
+     g['elements']+=r['elements'];g['squared_error_sum']+=r['elements']*r['mse'];g['zeroed']+=r['zeroed'];g['clipped']+=r['clipped'];g['array_events']+=1;g['min_scale']=min(g['min_scale'],r['scale']);g['max_scale']=max(g['max_scale'],r['scale'])
+report={}
+for mode in ('fp32','fixed-e4m3','fixed-e5m2','fixed-hybrid','calibrated','adaptive'):
+ rows=[r for r in finals if r['mode']==mode]
+ report[mode]={'elapsed_seconds':{'mean':statistics.mean(r['elapsed_seconds'] for r in rows),'min':min(r['elapsed_seconds'] for r in rows),'max':max(r['elapsed_seconds'] for r in rows)}}
+ for key in ('gradient_rounding_cosine','weight_rounding_gradient_cosine','total_gradient_cosine','total_gradient_mse','initial_calibration_seconds','reselection_seconds','selection_seconds'):
+  report[mode][key]=statistics.mean(r[key] for r in rows)
+ report[mode]['relu_sign_change_percent']=100*statistics.mean(r['relu_gate_flip_fraction'] for r in activations if r['mode']==mode and r['family']=='relu')
+ if mode!='fp32':
+  for kind in ('weight','gradient'):
+   g=rounding[mode,kind]
+   report[mode][kind+'_rounding']={**g,'mse':g['squared_error_sum']/g['elements'],'zeroed_percent':100*g['zeroed']/g['elements']}
+ print(mode,json.dumps(report[mode]))
+print('total format array records',sum(g['array_events'] for g in rounding.values()))
+print('total clipped elements',sum(g['clipped'] for g in rounding.values()))
+source=Path('/Users/neeraj/src/zomglings/afloat/docs/evidence/full-study/performance/benchmark-source.py')
+print('preserved original benchmark hash verified',hashlib.sha256(source.read_bytes()).hexdigest()==json.loads((p/'performance/protocol.json').read_text())['analysis_source_sha256'])
+(out/'report-table-checks.json').write_text(json.dumps(report,indent=2)+'\n')

@@ -1,0 +1,29 @@
+{
+  "adapt_every": 100,
+  "batch_size": 128,
+  "eval_every": 100,
+  "learning_rate": 0.001,
+  "modes": [
+    "fp32",
+    "fixed-e4m3",
+    "fixed-e5m2",
+    "fixed-hybrid",
+    "calibrated",
+    "adaptive"
+  ],
+  "sample_size": 2048,
+  "seeds": [
+    1
+  ],
+  "steps": 2000,
+  "targets": [
+    "linear",
+    "kink",
+    "plateau",
+    "detail",
+    "bump",
+    "composition"
+  ],
+  "threads": 1,
+  "warmup_steps": 50
+}

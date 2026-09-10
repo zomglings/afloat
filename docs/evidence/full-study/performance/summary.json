@@ -1,0 +1,302 @@
+{
+  "all_cached_representations_verified": true,
+  "all_training_trajectories_verified_at_step_300": true,
+  "conditions": 108,
+  "modes": [
+    {
+      "conditions": 18,
+      "inference_batch_128_milliseconds": {
+        "max": 0.21337457932531834,
+        "median": 0.12363479472696781,
+        "min": 0.11718957917764783
+      },
+      "inference_batch_128_samples_per_second": {
+        "max": 1092247.2876702172,
+        "median": 1035307.2630390325,
+        "min": 599884.0180715563
+      },
+      "inference_batch_1_milliseconds": {
+        "max": 0.08123500039801002,
+        "median": 0.07995312451384962,
+        "min": 0.07840957958251238
+      },
+      "inference_batch_1_samples_per_second": {
+        "max": 12753.543703772506,
+        "median": 12507.33953464002,
+        "min": 12309.964856287446
+      },
+      "mode": "fp32",
+      "preparation_milliseconds": {
+        "max": 0.018678728956729174,
+        "median": 0.013422937830910088,
+        "min": 0.01313685392960906
+      },
+      "training_ms_per_step": {
+        "max": 0.5061516662438711,
+        "median": 0.4926940953979889,
+        "min": 0.4731705567489068
+      },
+      "training_reselection_seconds": {
+        "max": 0.0,
+        "median": 0.0,
+        "min": 0.0
+      },
+      "training_samples_per_second": {
+        "max": 270515.56394267495,
+        "median": 259796.43888555196,
+        "min": 252888.62713795312
+      },
+      "training_seconds": {
+        "max": 0.15184549987316132,
+        "median": 0.1478082286193967,
+        "min": 0.14195116702467203
+      }
+    },
+    {
+      "conditions": 18,
+      "inference_batch_128_milliseconds": {
+        "max": 0.12534646084532142,
+        "median": 0.12372041470371187,
+        "min": 0.11980165960267186
+      },
+      "inference_batch_128_samples_per_second": {
+        "max": 1068432.611238595,
+        "median": 1034591.3196163541,
+        "min": 1021169.6376330329
+      },
+      "inference_batch_1_milliseconds": {
+        "max": 0.08167208172380924,
+        "median": 0.07963291485793889,
+        "min": 0.07833374897018075
+      },
+      "inference_batch_1_samples_per_second": {
+        "max": 12765.889710968248,
+        "median": 12557.625999636732,
+        "min": 12244.086092744685
+      },
+      "mode": "fixed-e4m3",
+      "preparation_milliseconds": {
+        "max": 0.6168459076434374,
+        "median": 0.6026457995176315,
+        "min": 0.5914082983508706
+      },
+      "training_ms_per_step": {
+        "max": 2.5187212500410774,
+        "median": 2.469780765241012,
+        "min": 2.387634722981602
+      },
+      "training_reselection_seconds": {
+        "max": 0.0,
+        "median": 0.0,
+        "min": 0.0
+      },
+      "training_samples_per_second": {
+        "max": 53609.54034047457,
+        "median": 51826.71930783478,
+        "min": 50819.43863296205
+      },
+      "training_seconds": {
+        "max": 0.7556163750123233,
+        "median": 0.7409342295723036,
+        "min": 0.7162904168944806
+      }
+    },
+    {
+      "conditions": 18,
+      "inference_batch_128_milliseconds": {
+        "max": 0.12558479560539126,
+        "median": 0.12360770488157868,
+        "min": 0.11820165906101465
+      },
+      "inference_batch_128_samples_per_second": {
+        "max": 1082895.1219197991,
+        "median": 1035536.8136061088,
+        "min": 1019231.6624235129
+      },
+      "inference_batch_1_milliseconds": {
+        "max": 0.08138000033795834,
+        "median": 0.07983583491295576,
+        "min": 0.07795708952471614
+      },
+      "inference_batch_1_samples_per_second": {
+        "max": 12827.569706574948,
+        "median": 12525.70853500567,
+        "min": 12288.03140633027
+      },
+      "mode": "fixed-e5m2",
+      "preparation_milliseconds": {
+        "max": 0.6397709017619491,
+        "median": 0.6087812944315374,
+        "min": 0.5798791884444655
+      },
+      "training_ms_per_step": {
+        "max": 2.5912391666012504,
+        "median": 2.4961647934590774,
+        "min": 2.3725122205602625
+      },
+      "training_reselection_seconds": {
+        "max": 0.0,
+        "median": 0.0,
+        "min": 0.0
+      },
+      "training_samples_per_second": {
+        "max": 53951.250025499605,
+        "median": 51278.67054607405,
+        "min": 49397.21568344799
+      },
+      "training_seconds": {
+        "max": 0.7773717499803752,
+        "median": 0.7488494380377233,
+        "min": 0.7117536661680788
+      }
+    },
+    {
+      "conditions": 18,
+      "inference_batch_128_milliseconds": {
+        "max": 0.12503582867793736,
+        "median": 0.1237900007981807,
+        "min": 0.1189470780082047
+      },
+      "inference_batch_128_samples_per_second": {
+        "max": 1076108.8220357196,
+        "median": 1034009.362832652,
+        "min": 1023706.575574411
+      },
+      "inference_batch_1_milliseconds": {
+        "max": 0.08206374943256378,
+        "median": 0.07940687472000718,
+        "min": 0.07790083065629005
+      },
+      "inference_batch_1_samples_per_second": {
+        "max": 12836.833594395768,
+        "median": 12593.405479049257,
+        "min": 12185.648436911282
+      },
+      "mode": "fixed-hybrid",
+      "preparation_milliseconds": {
+        "max": 0.618679216131568,
+        "median": 0.6058208178728819,
+        "min": 0.5881958175450563
+      },
+      "training_ms_per_step": {
+        "max": 2.7598455571569502,
+        "median": 2.481034515270342,
+        "min": 2.393201943486929
+      },
+      "training_reselection_seconds": {
+        "max": 0.0,
+        "median": 0.0,
+        "min": 0.0
+      },
+      "training_samples_per_second": {
+        "max": 53484.83037478325,
+        "median": 51591.72841842802,
+        "min": 46379.40687226678
+      },
+      "training_seconds": {
+        "max": 0.8279536671470851,
+        "median": 0.7443103545811027,
+        "min": 0.7179605830460787
+      }
+    },
+    {
+      "conditions": 18,
+      "inference_batch_128_milliseconds": {
+        "max": 0.15531915938481688,
+        "median": 0.12287957943044603,
+        "min": 0.11836957884952426
+      },
+      "inference_batch_128_samples_per_second": {
+        "max": 1081358.9204597771,
+        "median": 1041672.4982580899,
+        "min": 824109.5336015098
+      },
+      "inference_batch_1_milliseconds": {
+        "max": 0.08211083943024278,
+        "median": 0.07921208976767957,
+        "min": 0.07792416960000992
+      },
+      "inference_batch_1_samples_per_second": {
+        "max": 12832.98885484527,
+        "median": 12624.351836304177,
+        "min": 12178.660051935647
+      },
+      "mode": "calibrated",
+      "preparation_milliseconds": {
+        "max": 0.8581625064834953,
+        "median": 0.6271729187574238,
+        "min": 0.6060250103473663
+      },
+      "training_ms_per_step": {
+        "max": 2.784571802864472,
+        "median": 2.510906181608637,
+        "min": 2.418232780570785
+      },
+      "training_reselection_seconds": {
+        "max": 0.0,
+        "median": 0.0,
+        "min": 0.0
+      },
+      "training_samples_per_second": {
+        "max": 52931.21531905942,
+        "median": 50977.62728819676,
+        "min": 45967.57026280564
+      },
+      "training_seconds": {
+        "max": 0.8353715408593416,
+        "median": 0.7532718544825912,
+        "min": 0.7254698341712356
+      }
+    },
+    {
+      "conditions": 18,
+      "inference_batch_128_milliseconds": {
+        "max": 0.12510041939094663,
+        "median": 0.12347666546702385,
+        "min": 0.11822707951068878
+      },
+      "inference_batch_128_samples_per_second": {
+        "max": 1082662.2845608536,
+        "median": 1036633.1876929214,
+        "min": 1023178.0246874474
+      },
+      "inference_batch_1_milliseconds": {
+        "max": 0.08179625030606985,
+        "median": 0.07972938125021756,
+        "min": 0.07810374954715371
+      },
+      "inference_batch_1_samples_per_second": {
+        "max": 12803.482621487568,
+        "median": 12542.438494164919,
+        "min": 12225.499289492407
+      },
+      "mode": "adaptive",
+      "preparation_milliseconds": {
+        "max": 0.6912666955031455,
+        "median": 0.6256489490624517,
+        "min": 0.6092958152294159
+      },
+      "training_ms_per_step": {
+        "max": 2.794869167264551,
+        "median": 2.5459750000542654,
+        "min": 2.431028749948988
+      },
+      "training_reselection_seconds": {
+        "max": 0.011335124727338552,
+        "median": 0.0094670430989936,
+        "min": 0.009198872139677405
+      },
+      "training_samples_per_second": {
+        "max": 52652.60643366965,
+        "median": 50275.839275978564,
+        "min": 45798.20819493983
+      },
+      "training_seconds": {
+        "max": 0.8384607501793653,
+        "median": 0.7637925000162795,
+        "min": 0.7293086249846965
+      }
+    }
+  ],
+  "wall_seconds": 111.146482167067
+}

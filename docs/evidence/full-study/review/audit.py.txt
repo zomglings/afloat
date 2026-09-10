@@ -1,0 +1,116 @@
+import csv
+import hashlib
+import json
+import math
+import statistics
+from collections import Counter, defaultdict
+from pathlib import Path
+import torch
+
+root = Path('/Users/neeraj/src/zomglings/afloat')
+study = root / 'runs/full-study.NzhhwC'
+out = Path(__file__).parent
+torch.set_num_threads(1)
+def read(path):
+    return json.loads(path.read_text())
+def rows(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
+def truth(target, x):
+    a, b = x[:,0].double(), x[:,1].double()
+    return {'linear': lambda:a+0.5*b, 'kink':lambda:a.clamp_min(0)+0.3*b.abs(), 'plateau':lambda:(6*(a+0.5*b)).tanh(), 'detail':lambda:(2*math.pi*a).sin()+0.01*(8*math.pi*b).sin(), 'bump':lambda:(-80*((a-0.6).square()+(b+0.3).square())).exp(), 'composition':lambda:(3*(4*a).sin()+2*b).tanh()}[target]()
+metrics={}
+features=[]
+hash_count=0
+for seed in range(3):
+    saved_root=study/f'seed-{seed}'
+    manifest=read(saved_root/'manifest.json')
+    for name, expected in manifest.items():
+        with (saved_root/name).open('rb') as f:
+            assert hashlib.file_digest(f,'sha256').hexdigest()==expected
+        hash_count+=1
+    x=torch.load(saved_root/'inputs.pt',weights_only=True)['validation']
+    if seed==0:
+        common=x.clone()
+    else:
+        assert torch.equal(x,common)
+    for row in read(saved_root/'summary.json')['final_metrics']:
+        target, mode=row['target'],row['mode']
+        cp=torch.load(saved_root/target/f'seed-{seed}'/mode/'final.pt',weights_only=True)
+        pred=cp['validation_predictions'].flatten().double()
+        y=truth(target,x)
+        mse=float((pred-y).square().mean())
+        assert math.isclose(mse,row['validation_mse'],rel_tol=0.0002,abs_tol=1e-10),(target,seed,mode,mse,row['validation_mse'])
+        metrics[target,mode,seed]=mse
+        if mode=='fp32':
+            feat={'target':target,'seed':seed,'mse':mse,'relative_constant_mse':mse/float((y-y.mean()).square().mean())}
+            if target=='detail':
+                basis=(8*math.pi*x[:,1].double()).sin()
+                feat['detail_amplitude']=float((pred*basis).sum()/basis.square().sum())
+                true_grid=y.reshape(65,65)
+                pred_grid=pred.reshape(65,65)
+                det=pred_grid-pred_grid.mean(1,keepdim=True)
+                ref=true_grid-true_grid.mean(1,keepdim=True)
+                feat['detail_relative_mse']=float((det-ref).square().mean()/ref.square().mean())
+            if target=='bump':
+                mask=((x[:,0]-0.6).square()+(x[:,1]+0.3).square()<=0.15**2)
+                feat['bump_relative_to_zero']=float((pred[mask]-y[mask]).square().mean()/y[mask].square().mean())
+                peak=int(y.argmax())
+                feat['truth_peak']=float(y[peak]); feat['predicted_at_peak']=float(pred[peak])
+            features.append(feat)
+pairs=[]
+for saved in read(study/'analysis-final/paired-comparisons.json'):
+    t,c=saved['target'],saved['control']
+    ratios=[metrics[t,'adaptive',s]/metrics[t,c,s] for s in range(3)]
+    for actual,expected in zip(ratios,saved['paired_ratios']):
+        assert math.isclose(actual,expected,rel_tol=0.0003)
+    pairs.append({'target':t,'control':c,'ratios':ratios,'wins':sum(r<1 for r in ratios),'ties':sum(r==1 for r in ratios)})
+switches=[]
+fractions=Counter()
+for seed in range(3):
+    for target in ('linear','kink','plateau','detail','bump','composition'):
+        previous={}
+        path=study/f'seed-{seed}'/target/f'seed-{seed}/adaptive/formats.jsonl'
+        with path.open() as stream:
+            for line in stream:
+                event=json.loads(line)
+                key=event['array']; current=event['format']; step=event['step']
+                changed=key in previous and previous[key]!=current
+                assert changed==event['changed']
+                if changed:
+                    assert step>0 and step%100==0
+                    switches.append({'target':target,'seed':seed,**event})
+                previous[key]=current
+                fractions[key.split(':')[0],current]+=event['elements']
+raw=rows(study/'performance/measurements.jsonl')
+protocol=read(study/'performance/protocol.json')
+assert [(r['target'],r['seed'],r['mode']) for r in raw]==[tuple(r) for r in protocol['execution_order']]
+assert len(raw)==len({(r['target'],r['seed'],r['mode']) for r in raw})==108
+bench_checks=0
+for r in raw:
+    expected=next(v for v in rows(study/f'seed-{r["seed"]}'/r['target']/f'seed-{r["seed"]}'/r['mode']/'metrics.jsonl') if v['step']==300)['validation_mse']
+    assert math.isclose(r['training_reference_validation_mse'],expected,rel_tol=1e-7,abs_tol=1e-10)
+    assert math.isclose(r['training_ms_per_step'],r['training_seconds']/300*1000)
+    for key in ('inference_batch_1','inference_batch_128','preparation'):
+        t=r[key]
+        assert math.isclose(t['median_seconds'],statistics.median(t['raw_block_seconds'])/t['number_per_run'])
+        assert t['measured_calls']==len(t['raw_block_seconds'])*t['number_per_run']
+    bench_checks+=1
+for sm in read(study/'performance/summary.json')['modes']:
+    for k,v in sm.items():
+        if isinstance(v,dict):
+            vals=[r[k] for r in raw if r['mode']==sm['mode']]
+            assert v=={'median':statistics.median(vals),'min':min(vals),'max':max(vals)}
+activation_stats=[]
+for target in ('linear','kink','plateau','detail','bump','composition'):
+    for family in ('relu','tanh','silu'):
+        act=[]
+        for seed in range(3):
+            act.extend(r for r in rows(study/f'seed-{seed}'/target/f'seed-{seed}/fp32/activations.jsonl') if r['step']==2000 and r['family']==family)
+        activation_stats.append({'target':target,'family':family,**{key:{'min':min(r[key] for r in act),'max':max(r[key] for r in act),'mean':statistics.mean(r[key] for r in act)} for key in ('negative_fraction','near_zero_fraction','small_slope_fraction','input_abs_max')}})
+report={'manifest_files_verified':hash_count,'checkpoints_verified':len(metrics),'benchmark_records_verified':bench_checks,'pairs':pairs,'fp32_features':features,'switch_count':len(switches),'switch_arrays':dict(Counter(s['array'] for s in switches)),'switch_kinds':dict(Counter(s['array'].split(':')[0] for s in switches)),'switch_elements':dict(Counter(s['elements'] for s in switches)),'activation_statistics':activation_stats,'adaptive_element_counts':{':'.join(k):v for k,v in fractions.items()}}
+(out/'independent-results.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps({k:v for k,v in report.items() if k not in ('pairs','activation_statistics','fp32_features')},indent=2))
+for r in pairs:
+    if r['control']=='calibrated': print(r)
+for f in features:
+    if f['target'] in ('detail','bump'): print(f)

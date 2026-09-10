@@ -1,0 +1,31 @@
+{
+  "make check": {
+    "exit_code": 0,
+    "ruff_lint": "passed",
+    "ruff_format": "22 files already formatted",
+    "mypy": "9 source files passed",
+    "pytest": "33 passed in 4.26s"
+  },
+  "make smoke": {
+    "exit_code": 0,
+    "directory": "runs/smoke.7XHbp0/result",
+    "conditions_completed": 6
+  },
+  "git diff --check": {
+    "exit_code": 0
+  },
+  "analysis": {
+    "command": ".venv/bin/python scripts/analyze_study.py runs/full-study.NzhhwC --output runs/full-study.NzhhwC/analysis-published",
+    "exit_code": 0
+  },
+  "performance": {
+    "command": ".venv/bin/python scripts/benchmark_study.py runs/full-study.NzhhwC --output runs/full-study.NzhhwC/performance",
+    "exit_code": 0,
+    "source": "performance/benchmark-source.py"
+  },
+  "launcher": {
+    "cli_help_exit_code": 0,
+    "independent_review": "all original CLI settings and process behavior preserved",
+    "execution_note": "The original launcher ran the study; the later portable launcher was inspected, not used to rerun it."
+  }
+}

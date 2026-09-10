@@ -1,0 +1,42 @@
+import json
+from pathlib import Path
+import torch
+from torch.func import functional_call
+from afloat.model import make_model
+from afloat.runner import rounded_parameters
+from afloat.formats import FormatPolicy
+p=Path('/Users/neeraj/src/zomglings/afloat/runs/full-study.NzhhwC')
+torch.set_num_threads(1)
+count=0; activation_groups=0
+for seed in range(3):
+    data=torch.load(p/f'seed-{seed}/inputs.pt',weights_only=True)
+    for target in ('linear','kink','plateau','detail','bump','composition'):
+        for mode in ('fp32','fixed-e4m3','fixed-e5m2','fixed-hybrid','calibrated','adaptive'):
+            group=p/f'seed-{seed}'/target/f'seed-{seed}'/mode
+            cp=torch.load(group/'final.pt',weights_only=True)
+            model=make_model(seed); model.load_state_dict(cp['model'])
+            params=rounded_parameters(model,FormatPolicy(mode,cp['format_choices'],100,2048))
+            assert all(torch.equal(value,cp['rounded_parameters'][name]) for name,value in params.items())
+            with torch.inference_mode():
+                pred=functional_call(model,params,(data['validation'],),strict=True)
+            assert torch.equal(pred,cp['validation_predictions'])
+            count+=1
+            if mode=='fp32':
+                inputs={}
+                def hook(name):
+                    def save(module,args): inputs[name]=args[0].clone()
+                    return save
+                handles=[m.register_forward_pre_hook(hook(name)) for name,m in model.named_modules() if isinstance(m,(torch.nn.ReLU,torch.nn.Tanh,torch.nn.SiLU))]
+                with torch.inference_mode(): model(data['probes'])
+                for h in handles: h.remove()
+                records={r['activation']:r for r in (json.loads(line) for line in (group/'activations.jsonl').read_text().splitlines()) if r['step']==2000}
+                for name,z in inputs.items():
+                    family=name.split('.')[-1]
+                    if family=='relu': slope=(z>0).float()
+                    elif family=='tanh': slope=1-z.tanh().square()
+                    else: slope=z.sigmoid()*(1+z*(1-z.sigmoid()))
+                    assert float((slope.abs()<0.01).float().mean())==records[name]['small_slope_fraction']
+                    assert float((z<0).float().mean())==records[name]['negative_fraction']
+                    activation_groups+=1
+print('Exact final represented arrays and predictions verified:',count)
+print('Independent FP32 activation slope and sign groups verified:',activation_groups)

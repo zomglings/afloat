@@ -15,6 +15,10 @@ rounds weights and parameter gradients. It does not measure accelerator speed.
 Read the [experiment design](docs/experiment.md) for the hypothesis, controls,
 format definitions, measurement plan, and later work.
 
+The [prototype results](proto-results.md) report all 108 full-study runs and
+separate CPU training and inference measurements. Repeated selection did not
+consistently beat choosing once; format changes were confined to the output bias.
+
 ## Run
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:

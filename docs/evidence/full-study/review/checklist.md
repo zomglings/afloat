@@ -1,0 +1,7 @@
+- [x] Inspect study configuration, analysis and benchmark code, raw evidence, and declared claims.
+- [x] Independently recompute paired accuracy comparisons and format-switch locations.
+- [x] Check feature recovery and exercised activation regions, including direct model evaluation.
+- [x] Check benchmark timing design, summaries, and saved endpoint-loss assertions.
+- [x] Check portable launcher against original settings and process behavior.
+- [x] Check final proto-results.md and verify reporting corrections.
+- [x] Save reproducible findings, scripts, and results; audit limitations before handoff.
