@@ -10,6 +10,9 @@
 - [x] Run prescribed lint, format, type checks, tests, and a training smoke run.
 - [x] Run one bounded adversarial review and resolve material findings.
 - [x] Record evidence and distinguish software readiness from research results.
-- [ ] Commit, push, and verify public GitHub contents and branch tracking.
+- [x] Commit, push, and verify public GitHub contents and branch tracking.
+
+The initial implementation was published as `f681d7c` on `main`.
+GitHub visibility is public, the license is MIT, and local `main` tracks `upstream/main`.
 
 Later research work is tracked separately in `docs/experiment.md`.
