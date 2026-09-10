@@ -1,0 +1,48 @@
+{
+  "exact_checkpoint_continuations": [
+    {
+      "mode": "fp32",
+      "model": true,
+      "optimizer": true,
+      "choices": true
+    },
+    {
+      "mode": "fixed-e4m3",
+      "model": true,
+      "optimizer": true,
+      "choices": true
+    },
+    {
+      "mode": "fixed-e5m2",
+      "model": true,
+      "optimizer": true,
+      "choices": true
+    },
+    {
+      "mode": "fixed-hybrid",
+      "model": true,
+      "optimizer": true,
+      "choices": true
+    },
+    {
+      "mode": "calibrated",
+      "model": true,
+      "optimizer": true,
+      "choices": true
+    },
+    {
+      "mode": "adaptive",
+      "model": true,
+      "optimizer": true,
+      "choices": true
+    },
+    {
+      "mode": "fixed-e3m4",
+      "model": true,
+      "optimizer": true,
+      "choices": true
+    }
+  ],
+  "launcher_jobs": 10,
+  "launcher_conditions": 70
+}

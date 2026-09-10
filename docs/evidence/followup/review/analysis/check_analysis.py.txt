@@ -1,0 +1,71 @@
+import importlib.util
+import json
+import math
+import statistics
+import sys
+from pathlib import Path
+import torch
+root=Path('/Users/neeraj/src/zomglings/afloat')
+work=root/'runs/followup.KGkx3v'
+out=Path(__file__).parent
+sys.path.insert(0,str(work))
+spec=importlib.util.spec_from_file_location('analysis',work/'analyze_followup.py')
+a=importlib.util.module_from_spec(spec);spec.loader.exec_module(a)
+plan=json.loads((root/'docs/followup-protocol.json').read_text())
+torch.set_num_threads(1)
+# Test threshold logic without reading or calculating any models.
+def sequence(values):
+ return [{'step':500*i,'validation_mse':.00001 if ok else 1.,'detail_component_relative_mse':.1 if ok else 1.,'detail_amplitude':.01 if ok else 0.} for i,ok in enumerate(values)]
+thresholds={}
+for name,seq,expected in [('initial',[True,True,True],(0,1000)),('reset',[True,False,True,True,True],(1000,2000)),('miss',[True,False,True],(None,None)),('later_loss',[True,True,True,False],(0,1000))]:
+ r=a.threshold_steps(sequence(seq),plan['threshold']);assert (r['first_crossing_step'],r['confirmation_step'])==expected
+ thresholds[name]=r
+# Same array: strict initial winner, a tie-broken label, then new strict winner.
+fixture=out/'format-fixture';fixture.mkdir()
+def event(step,fmt,scores,changed,value_changes):
+ return {'step':step,'array':'weight:test','elements':32,'format':fmt,'candidate_mse':scores,'changed':changed,'changed_elements':value_changes,'rounding_change_mse':float(value_changes>0),'mse':scores[fmt],'zeroed':0,'clipped':0,'scale':1.}
+events=[event(100,'e4m3',{'e3m4':1.,'e4m3':1.,'e5m2':3.},True,0),event(200,'e5m2',{'e3m4':1.,'e4m3':2.,'e5m2':.1},True,32)]
+(fixture/'formats.jsonl').write_text('\n'.join(json.dumps(e) for e in events)+'\n')
+initial=[{'array':'weight:test','elements':32,'format':'e3m4','margin':.5}]
+_,counts,_,preferences=a.inspect_formats(fixture,{'gain':1.,'seed':999,'mode':'adaptive'},plan,initial)
+assert counts['substantial_strict_preference_changes']==1 and preferences[0]['previous']['phase']=='initial calibration'
+assert counts['switches']==2 and counts['switches_with_value_changes']==1
+# Read only completed gain-1 groups and recompute their paired summaries.
+filtered={**plan,'activation_gains':[1.]}
+finals=[];activations=[]
+for seed in plan['seeds']:
+ group=work/'accuracy'/f'gain-1-seed-{seed}'
+ assert json.loads((group/'summary.json').read_text())['status']=='completed'
+ for mode in plan['modes']:
+  d=group/'detail'/f'seed-{seed}'/mode
+  rows=a.read_rows(d/'metrics.jsonl')
+  finals.append({'gain':1.,**rows[-1],**a.threshold_steps(rows,plan['threshold'])})
+  activations.extend({'gain':1.,'mode':mode,**r} for r in a.read_rows(d/'activations.jsonl') if r['step'] in (0,20000))
+summaries,paired,_=a.summarize({'finals':finals,'activations':activations},filtered)
+lookup={(r['seed'],r['mode']):r for r in finals}
+for pair in paired:
+ vals=[lookup[s,'adaptive'][pair['metric']]-lookup[s,pair['control']][pair['metric']] for s in pair['seeds']]
+ assert vals==pair['differences']
+ assert sum(v<0 for v in vals)==pair['adaptive_wins']
+ assert sum(v==0 for v in vals)==pair['ties']
+ ratio=sum(lookup[s,'adaptive'][pair['metric']] for s in pair['seeds'])/sum(lookup[s,pair['control']][pair['metric']] for s in pair['seeds'])
+ assert math.isclose(ratio,pair['ratio_of_means'],rel_tol=1e-14)
+# Inspect one completed adaptive event file, including reconstructed calibration.
+complete=work/'accuracy/gain-1-seed-10'
+initial_actual=a.initial_scores(complete,1.,10,plan)
+_,actual_counts,_,actual_preferences=a.inspect_formats(complete/'detail/seed-10/adaptive',{'gain':1.,'seed':10,'mode':'adaptive'},plan,initial_actual)
+assert len(initial_actual)==32 and actual_counts['records']==6432 and actual_counts['candidate_records']==6368
+features={}
+inputs=torch.load(complete/'inputs.pt',weights_only=True)['validation']
+truth=(torch.sin(2*math.pi*inputs[:,0])+.01*torch.sin(8*math.pi*inputs[:,1])).reshape(65,65).double()
+reference=truth-truth.mean(1,keepdim=True)
+for mode in ('fp32','adaptive'):
+ cp=torch.load(complete/'detail/seed-10'/mode/'final.pt',weights_only=True)
+ pred=cp['validation_predictions'].reshape(65,65).double()
+ observed=pred-pred.mean(1,keepdim=True)
+ ratio=float((observed-reference).square().mean()/reference.square().mean())
+ assert ratio==lookup[10,mode]['detail_component_relative_mse']
+ features[mode]=ratio
+result={'threshold_cases':thresholds,'synthetic_format_counts':counts,'selected_complete_group_counts':actual_counts,'selected_strict_preference_changes':len(actual_preferences),'paired_comparisons_verified':len(paired),'independent_component_errors':features}
+(out/'results.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result,indent=2))

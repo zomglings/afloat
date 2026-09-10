@@ -1,0 +1,14 @@
+{
+  "batch": 128,
+  "final_lr": 1e-05,
+  "gains": [
+    1.0
+  ],
+  "initial_lr": 0.001,
+  "input_features": "fourier",
+  "measurement_every": 1000,
+  "role": "development; not final comparison",
+  "seed": 101,
+  "steps": 20000,
+  "warmup": 50
+}

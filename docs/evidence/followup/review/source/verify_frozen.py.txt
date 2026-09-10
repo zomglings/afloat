@@ -1,0 +1,66 @@
+import importlib.util
+import json
+import sys
+from pathlib import Path
+import torch
+from torch.func import functional_call
+from afloat.formats import MODES, FormatPolicy
+from afloat.model import make_model
+from afloat.runner import RunConfig, run_experiment, training_batch, update_learning_rate
+from afloat.targets import target_values
+
+root=Path('/Users/neeraj/src/zomglings/afloat')
+out=Path(__file__).parent
+torch.set_num_threads(1)
+config=RunConfig(targets=('detail',),modes=MODES,seeds=(777,),steps=4,warmup_steps=2,batch_size=16,eval_every=2,adapt_every=2,input_features='fourier',activation_gain=4,final_learning_rate=.00001,format_log_every=3,save_checkpoints=True)
+run=run_experiment(config,out/'tiny')
+def same(a,b):
+    if isinstance(a,torch.Tensor): return torch.equal(a,b)
+    if isinstance(a,dict): return a.keys()==b.keys() and all(same(a[k],b[k]) for k in a)
+    if isinstance(a,(tuple,list)): return len(a)==len(b) and all(same(u,v) for u,v in zip(a,b))
+    return a==b
+checks=[]
+for mode in MODES:
+    group=run/'detail/seed-777'/mode
+    start=torch.load(group/'step-2.pt',weights_only=True)
+    expected=torch.load(group/'step-4.pt',weights_only=True)
+    model=make_model(777,**start['model_settings']);model.load_state_dict(start['model'])
+    optimizer=torch.optim.Adam(model.parameters(),lr=config.learning_rate)
+    optimizer.load_state_dict(start['optimizer'])
+    policy=FormatPolicy(mode,start['format_choices'],config.adapt_every,config.sample_size)
+    for step in range(start['step'],config.steps):
+        for g in optimizer.param_groups:g['lr']=update_learning_rate(config,step)
+        x=training_batch(777,config.warmup_steps+step,config.batch_size)
+        optimizer.zero_grad(set_to_none=True)
+        params={}
+        for name,p in model.named_parameters():
+            q=policy.apply(p,name,'weight',step);params[name]=p+(q-p).detach()
+        loss=(functional_call(model,params,(x,),strict=True)-target_values('detail',x)).square().mean()
+        loss.backward()
+        for name,p in model.named_parameters():p.grad.copy_(policy.apply(p.grad,name,'gradient',step))
+        optimizer.step();policy.events.clear()
+    result={'mode':mode,'model':same(model.state_dict(),expected['model']),'optimizer':same(optimizer.state_dict(),expected['optimizer']),'choices':policy.choices==expected['format_choices']}
+    assert all(result[k] for k in ('model','optimizer','choices'))
+    checks.append(result)
+# Inspect launcher command construction without launching subprocess training.
+spec=importlib.util.spec_from_file_location('run_followup',root/'scripts/run_followup.py')
+launcher=importlib.util.module_from_spec(spec);spec.loader.exec_module(launcher)
+launcher.subprocess.check_output=lambda cmd,**kwargs: b'' if cmd[1]=='status' else 'review-fixture-revision\n'
+commands=[]
+def capture(command,logfile,root):
+    commands.append(command);return 0
+launcher.execute=capture
+sys.argv=['run_followup.py','--output',str(out/'launcher')]
+try: launcher.main()
+except SystemExit as e: assert e.code==0
+plan=json.loads((root/'docs/followup-protocol.json').read_text())
+assert len(commands)==10
+for command in commands:
+    modes=command[command.index('--modes')+1:command.index('--input-features')]
+    assert set(modes)==set(plan['modes']) and len(modes)==7
+    for key in ('steps','warmup_steps','batch_size','learning_rate','final_learning_rate','adapt_every','eval_every','format_log_every','sample_size','threads'):
+        assert command[command.index('--'+key.replace('_','-'))+1]==str(plan[key])
+    assert '--save-checkpoints' in command
+result={'exact_checkpoint_continuations':checks,'launcher_jobs':len(commands),'launcher_conditions':sum(len(c[c.index('--modes')+1:c.index('--input-features')]) for c in commands)}
+(out/'verification.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result,indent=2))

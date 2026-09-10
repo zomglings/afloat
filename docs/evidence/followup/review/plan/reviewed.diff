@@ -1,0 +1,229 @@
+diff --git a/scripts/analyze_study.py b/scripts/analyze_study.py
+index 4ac5673..0973810 100644
+--- a/scripts/analyze_study.py
++++ b/scripts/analyze_study.py
+@@ -15,7 +15,7 @@ import torch
+ matplotlib.use("Agg")
+ import matplotlib.pyplot as plt
+ 
+-from afloat.formats import MODES
++from afloat.formats import PROTOTYPE_MODES as MODES
+ from afloat.targets import TARGETS, feature_metrics, target_values
+ 
+ 
+@@ -77,6 +77,12 @@ def verify_runs(study):
+     for seed in range(3):
+         root = study / f"seed-{seed}"
+         config = read_json(root / "config.json")
++        for name, default in (
++            ("activation_gain", 1.0),
++            ("final_learning_rate", None),
++            ("input_features", "raw"),
++        ):
++            assert config.pop(name, default) == default
+         assert config == {**expected, "seeds": [seed]}
+         env = read_json(root / "environment.json")
+         assert (
+diff --git a/scripts/benchmark_study.py b/scripts/benchmark_study.py
+index e62d671..ff1daed 100644
+--- a/scripts/benchmark_study.py
++++ b/scripts/benchmark_study.py
+@@ -19,7 +19,8 @@ import torch
+ from torch.func import functional_call
+ from torch.utils.benchmark import Timer
+ 
+-from afloat.formats import MODES, FormatPolicy
++from afloat.formats import PROTOTYPE_MODES as MODES
++from afloat.formats import FormatPolicy
+ from afloat.model import make_model
+ from afloat.runner import evaluate, rounded_parameters, training_batch
+ from afloat.targets import TARGETS, sample_inputs, target_values
+diff --git a/src/afloat/cli.py b/src/afloat/cli.py
+index 8baef66..7343575 100644
+--- a/src/afloat/cli.py
++++ b/src/afloat/cli.py
+@@ -29,6 +29,9 @@ def main() -> None:
+     run.add_argument("--adapt-every", type=int, default=100)
+     run.add_argument("--sample-size", type=int, default=2048)
+     run.add_argument("--threads", type=int, default=1)
++    run.add_argument("--activation-gain", type=float, default=1.0)
++    run.add_argument("--final-learning-rate", type=float)
++    run.add_argument("--input-features", choices=("raw", "fourier"), default="raw")
+     plot = commands.add_parser("plot", help="Regenerate a run's loss plot")
+     plot.add_argument("output", type=Path)
+     plot.add_argument("--destination", type=Path)
+@@ -62,6 +65,9 @@ def main() -> None:
+         adapt_every=args.adapt_every,
+         sample_size=args.sample_size,
+         threads=args.threads,
++        activation_gain=args.activation_gain,
++        final_learning_rate=args.final_learning_rate,
++        input_features=args.input_features,
+     )
+     print(run_experiment(config, args.output))
+ 
+diff --git a/src/afloat/formats.py b/src/afloat/formats.py
+index 440cee4..47197d1 100644
+--- a/src/afloat/formats.py
++++ b/src/afloat/formats.py
+@@ -47,7 +47,15 @@ FORMATS = {
+     "e5m2": FloatFormat("e5m2", 5, 2),
+     "e3m4": FloatFormat("e3m4", 3, 4),
+ }
+-MODES = ("fp32", "fixed-e4m3", "fixed-e5m2", "fixed-hybrid", "calibrated", "adaptive")
++PROTOTYPE_MODES = (
++    "fp32",
++    "fixed-e4m3",
++    "fixed-e5m2",
++    "fixed-hybrid",
++    "calibrated",
++    "adaptive",
++)
++MODES = (*PROTOTYPE_MODES, "fixed-e3m4")
+ 
+ 
+ def array_scale(x: Tensor, fmt: FloatFormat) -> float:
+diff --git a/src/afloat/model.py b/src/afloat/model.py
+index 03fc3b8..98ca296 100644
+--- a/src/afloat/model.py
++++ b/src/afloat/model.py
+@@ -1,12 +1,15 @@
+ """Small residual feed-forward blocks with three activation families."""
+ 
++import math
++
+ import torch
+ from torch import Tensor, nn
+ 
+ 
+ class MixedBlock(nn.Module):
+-    def __init__(self) -> None:
++    def __init__(self, activation_gain: float = 1.0) -> None:
+         super().__init__()
++        self.activation_gain = activation_gain
+         self.expand = nn.Linear(32, 48)
+         self.relu = nn.ReLU()
+         self.tanh = nn.Tanh()
+@@ -14,15 +17,34 @@ class MixedBlock(nn.Module):
+         self.project = nn.Linear(48, 32)
+ 
+     def forward(self, h: Tensor) -> Tensor:
+-        a, b, c = self.expand(h).chunk(3, dim=-1)
++        a, b, c = (self.expand(h) * self.activation_gain).chunk(3, dim=-1)
+         nonlinear = torch.cat((self.relu(a), self.tanh(b), self.silu(c)), dim=-1)
+         result: Tensor = h + self.project(nonlinear)
+         return result
+ 
+ 
+-def make_model(seed: int) -> nn.Sequential:
++class FourierInputs(nn.Module):
++    def forward(self, x: Tensor) -> Tensor:
++        angles = x.unsqueeze(-1) * x.new_tensor([1, 2, 4, 8]) * math.pi
++        return torch.cat((x, angles.sin().flatten(1), angles.cos().flatten(1)), dim=1)
++
++
++def make_model(
++    seed: int, activation_gain: float = 1.0, input_features: str = "raw"
++) -> nn.Sequential:
++    if input_features not in ("raw", "fourier"):
++        raise ValueError("Unknown input features")
+     with torch.random.fork_rng():
+         torch.manual_seed(seed)
+-        return nn.Sequential(
+-            nn.Linear(2, 32), MixedBlock(), MixedBlock(), MixedBlock(), nn.Linear(32, 1)
++        layers = nn.Sequential(
++            nn.Linear(2 if input_features == "raw" else 18, 32),
++            MixedBlock(activation_gain),
++            MixedBlock(activation_gain),
++            MixedBlock(activation_gain),
++            nn.Linear(32, 1),
++        )
++        return (
++            layers
++            if input_features == "raw"
++            else nn.Sequential(FourierInputs(), *layers)
+         )
+diff --git a/src/afloat/runner.py b/src/afloat/runner.py
+index 43290db..2b00eab 100644
+--- a/src/afloat/runner.py
++++ b/src/afloat/runner.py
+@@ -38,6 +38,9 @@ class RunConfig:
+     adapt_every: int = 100
+     sample_size: int = 2048
+     threads: int = 1
++    activation_gain: float = 1.0
++    final_learning_rate: float | None = None
++    input_features: str = "raw"
+ 
+     def validate(self) -> None:
+         for values, allowed in ((self.targets, TARGETS), (self.modes, MODES)):
+@@ -73,6 +76,29 @@ class RunConfig:
+             or self.learning_rate <= 0
+         ):
+             raise ValueError("Invalid warmup or learning rate")
++        if not math.isfinite(self.activation_gain) or self.activation_gain <= 0:
++            raise ValueError("Activation gain must be finite and positive")
++        if self.input_features not in ("raw", "fourier"):
++            raise ValueError("Unknown input features")
++        if self.final_learning_rate is not None and (
++            not math.isfinite(self.final_learning_rate)
++            or not 0 < self.final_learning_rate <= self.learning_rate
++        ):
++            raise ValueError(
++                "Final learning rate must be positive and no larger than initial"
++            )
++
++
++def update_learning_rate(config: RunConfig, step: int) -> float:
++    if config.final_learning_rate is None:
++        return config.learning_rate
++    fraction = step / max(1, config.steps - 1)
++    return (
++        config.final_learning_rate
++        + (config.learning_rate - config.final_learning_rate)
++        * (1 + math.cos(math.pi * fraction))
++        / 2
++    )
+ 
+ 
+ def training_batch(seed: int, step: int, size: int) -> Tensor:
+@@ -82,7 +108,7 @@ def training_batch(seed: int, step: int, size: int) -> Tensor:
+ def warmup(
+     config: RunConfig, target: str, seed: int
+ ) -> tuple[nn.Sequential, torch.optim.Adam, dict[str, str], float]:
+-    model = make_model(seed)
++    model = make_model(seed, config.activation_gain, config.input_features)
+     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+     for step in range(config.warmup_steps):
+         x = training_batch(seed, step, config.batch_size)
+@@ -195,6 +221,8 @@ def run_condition(
+ 
+     measure(0, {})
+     for step in range(config.steps):
++        for group in optimizer.param_groups:
++            group["lr"] = update_learning_rate(config, step)
+         x = training_batch(seed, config.warmup_steps + step, config.batch_size)
+         optimizer.zero_grad(set_to_none=True)
+         parameters = {}
+@@ -255,6 +283,10 @@ def run_condition(
+             "validation_predictions": predictions,
+             "mode": mode,
+             "steps": config.steps,
++            "model_settings": {
++                "activation_gain": config.activation_gain,
++                "input_features": config.input_features,
++            },
+         },
+         output / "final.pt",
+     )
+@@ -274,7 +306,9 @@ def run_experiment(config: RunConfig, output: Path) -> Path:
+     torch.save({"validation": validation, "probes": probes}, output / "inputs.pt")
+     records: list[dict[str, object]] = []
+     failures: list[dict[str, object]] = []
+-    model_spec = make_model(config.seeds[0])
++    model_spec = make_model(
++        config.seeds[0], config.activation_gain, config.input_features
++    )
+     try:
+         for target in config.targets:
+             for seed in config.seeds:

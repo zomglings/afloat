@@ -1,0 +1,145 @@
+[
+  {
+    "case": "warmup_failure",
+    "gain": 1.0,
+    "seed": 10,
+    "mode": "fp32",
+    "warmup_seconds": null,
+    "initial_calibration_seconds": null,
+    "status": "numerical_failure",
+    "phase": "setup",
+    "message": "injected setup failure",
+    "reached": false,
+    "crossing": null,
+    "final_step": 0,
+    "last_validation_step": null,
+    "training_seconds": 0.0,
+    "validation_seconds": 0.0,
+    "measured_seconds": 1.0,
+    "unsplit_failed_setup_seconds": 1.0,
+    "metrics": null
+  },
+  {
+    "case": "partial_block_failure",
+    "gain": 1.0,
+    "seed": 10,
+    "mode": "fp32",
+    "warmup_seconds": 0.9,
+    "initial_calibration_seconds": 0.0,
+    "status": "numerical_failure",
+    "phase": "training",
+    "message": "injected partial block failure",
+    "reached": false,
+    "crossing": null,
+    "final_step": 123,
+    "last_validation_step": 0,
+    "training_seconds": 1.0,
+    "validation_seconds": 1.0,
+    "measured_seconds": 2.9,
+    "unsplit_failed_setup_seconds": null,
+    "metrics": {
+      "validation_mse": 1.0,
+      "detail_component_relative_mse": 1.0,
+      "detail_amplitude": 0.0
+    }
+  },
+  {
+    "case": "validation_failure",
+    "gain": 1.0,
+    "seed": 10,
+    "mode": "fp32",
+    "warmup_seconds": 0.9,
+    "initial_calibration_seconds": 0.0,
+    "status": "numerical_failure",
+    "phase": "validation",
+    "message": "injected validation failure",
+    "reached": false,
+    "crossing": null,
+    "final_step": 500,
+    "last_validation_step": 0,
+    "training_seconds": 1.0,
+    "validation_seconds": 2.0,
+    "measured_seconds": 3.9,
+    "unsplit_failed_setup_seconds": null,
+    "metrics": {
+      "validation_mse": 1.0,
+      "detail_component_relative_mse": 1.0,
+      "detail_amplitude": 0.0
+    }
+  },
+  {
+    "case": "reset_then_pass",
+    "gain": 1.0,
+    "seed": 10,
+    "mode": "fp32",
+    "warmup_seconds": 0.9,
+    "initial_calibration_seconds": 0.0,
+    "status": "completed",
+    "reached": true,
+    "crossing": {
+      "step": 1000,
+      "measured_seconds": 5.9
+    },
+    "reselection_seconds": 0.0,
+    "final_step": 2000,
+    "last_validation_step": 2000,
+    "training_seconds": 4.0,
+    "validation_seconds": 5.0,
+    "measured_seconds": 9.9,
+    "unsplit_failed_setup_seconds": null,
+    "metrics": {
+      "validation_mse": 1e-05,
+      "detail_component_relative_mse": 0.1,
+      "detail_amplitude": 0.01
+    }
+  },
+  {
+    "case": "never_reaches",
+    "gain": 1.0,
+    "seed": 10,
+    "mode": "fp32",
+    "warmup_seconds": 0.9,
+    "initial_calibration_seconds": 0.0,
+    "status": "completed",
+    "reached": false,
+    "crossing": null,
+    "reselection_seconds": 0.0,
+    "final_step": 1000,
+    "last_validation_step": 1000,
+    "training_seconds": 2.0,
+    "validation_seconds": 3.0,
+    "measured_seconds": 5.9,
+    "unsplit_failed_setup_seconds": null,
+    "metrics": {
+      "validation_mse": 1.0,
+      "detail_component_relative_mse": 1.0,
+      "detail_amplitude": 0.0
+    }
+  },
+  {
+    "case": "passes_from_initial",
+    "gain": 1.0,
+    "seed": 10,
+    "mode": "fp32",
+    "warmup_seconds": 0.9,
+    "initial_calibration_seconds": 0.0,
+    "status": "completed",
+    "reached": true,
+    "crossing": {
+      "step": 0,
+      "measured_seconds": 1.9
+    },
+    "reselection_seconds": 0.0,
+    "final_step": 1000,
+    "last_validation_step": 1000,
+    "training_seconds": 2.0,
+    "validation_seconds": 3.0,
+    "measured_seconds": 5.9,
+    "unsplit_failed_setup_seconds": null,
+    "metrics": {
+      "validation_mse": 1e-05,
+      "detail_component_relative_mse": 0.1,
+      "detail_amplitude": 0.01
+    }
+  }
+]

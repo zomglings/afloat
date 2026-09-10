@@ -1,0 +1,15 @@
+{
+  "batch": 128,
+  "final_lr": 1e-05,
+  "gains": [
+    1,
+    4,
+    8
+  ],
+  "initial_lr": 0.001,
+  "measurement_every": 1000,
+  "role": "development; not final comparison",
+  "seed": 100,
+  "steps": 20000,
+  "warmup": 50
+}

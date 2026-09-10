@@ -1,0 +1,8 @@
+{
+  "followup-results.md": "67d7844939b33532c1130a401053b947c555990138405f0c6b2eab1feb2ca4b2",
+  "docs/evidence/followup/README.md": "45f8d0d3894eac2f1d1e529c203d8016b3b41590610c176e42e90ce540b8aced",
+  "docs/followup-reproduction.md": "2e7c7b73e202b2cee8ac4e7c89bbb5ab1d2f22e4df4e2796b80b37de9ff8510f",
+  "scripts/summarize_followup_performance.py": "c594763e1fa80fcfe6259b57c578724521a763d5a9948451b5b980a3d63ebaed",
+  "scripts/benchmark_followup.py": "78cfd75c73d24125c7dbdc4a6e510898d68bbd50b99ae1ec6c96ae49560036e5",
+  "scripts/analyze_followup.py": "557c76099805af8f2704d6773099a6398dc3f4806ea54dd32091b5f0f7fd80e8"
+}

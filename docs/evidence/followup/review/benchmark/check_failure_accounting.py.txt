@@ -1,0 +1,56 @@
+"""Exercise the real benchmark main with tiny fake data and a logical clock."""
+import importlib.util
+import json
+import sys
+from pathlib import Path
+import torch
+
+root=Path('/Users/neeraj/src/zomglings/afloat')
+source=Path(__file__).with_name('benchmark-before-fixes.py')
+out=Path(__file__).parent
+class DummyOptimizer:
+    def state_dict(self): return {}
+
+def run_case(kind):
+    spec=importlib.util.spec_from_file_location('benchmark_'+kind,source)
+    m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+    work=out/kind;work.mkdir()
+    study=work/'study';study.mkdir()
+    base=study/'gain-1-seed-10'; group=base/'detail/seed-10/fp32';group.mkdir(parents=True)
+    plan=json.loads((root/'docs/followup-protocol.json').read_text())
+    plan.update(activation_gains=[1.0],seeds=[10],modes=['fp32'],steps=500)
+    plan['performance'].update(threshold_seeds=[10],threshold_modes=['fp32'])
+    (study/'protocol.json').write_text(json.dumps({'plan':plan}))
+    (study/'completion.json').write_text(json.dumps({'outcomes':[{'exit_code':0} for _ in range(10)]}))
+    env={'source_hashes':{},'dependencies':{}}
+    (base/'environment.json').write_text(json.dumps(env))
+    model=torch.nn.Linear(1,1)
+    metrics={'validation_mse':1.,'detail_component_relative_mse':1.,'detail_amplitude':0.}
+    (group/'metrics.jsonl').write_text(json.dumps({'step':0,**metrics})+'\n')
+    torch.save({'validation':torch.zeros(1,1)},base/'inputs.pt')
+    torch.save({'model':model.state_dict(),'optimizer':{},'format_choices':{}},group/'step-0.pt')
+    params={k:v.detach() for k,v in model.named_parameters()}
+    torch.save({'model':model.state_dict(),'model_settings':{},'format_choices':{},'rounded_parameters':params},group/'final.pt')
+    m.platform.system=lambda:'Test'
+    def record(output): (output/'environment.json').write_text(json.dumps(env))
+    m.record_source=record
+    ticks=iter(range(10000));m.perf_counter=lambda:float(next(ticks))
+    def warmup(config,target,seed):
+        if kind=='warmup_failure' and seed==10: raise FloatingPointError('injected warmup failure')
+        return model,DummyOptimizer(),{},0.1
+    m.warmup=warmup
+    def block(model,optimizer,policy,config,seed,start,end):
+        if seed==10: raise FloatingPointError('injected partial-block failure')
+    m.train_block=block
+    m.evaluate=lambda *args:metrics.copy()
+    m.make_model=lambda *args,**kwargs:model
+    m.timed=lambda fn:{'median_seconds':.01,'iqr_seconds':0.,'number_per_run':1,'raw_block_seconds':[.01]}
+    sys.argv=['benchmark_followup.py',str(study),'--output',str(work/'result')]
+    try: m.main()
+    except Exception as exc: exception=type(exc).__name__+': '+str(exc)
+    result_path=work/'result/threshold-results.jsonl'
+    record=json.loads(result_path.read_text().splitlines()[0]) if result_path.exists() else None
+    return {'case':kind,'exception':exception,'threshold_record':record,'summary_written':(work/'result/summary.json').exists()}
+results=[run_case('warmup_failure'),run_case('partial_block_failure')]
+(out/'failure-results.json').write_text(json.dumps(results,indent=2)+'\n')
+print(json.dumps(results,indent=2))

@@ -1,0 +1,8 @@
+kink seed=0 mode=fp32
+kink seed=0 mode=fixed-e4m3
+kink seed=0 mode=fixed-e5m2
+kink seed=0 mode=fixed-hybrid
+kink seed=0 mode=calibrated
+kink seed=0 mode=adaptive
+kink seed=0 mode=fixed-e3m4
+/Users/neeraj/src/zomglings/afloat/runs/smoke.YlLf2s/result

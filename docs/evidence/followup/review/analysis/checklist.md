@@ -1,0 +1,6 @@
+- [x] Read analysis implementation, frozen protocol, and completed raw schemas.
+- [x] Check paired statistics, component errors, and threshold-event interpretation.
+- [x] Test tie handling and initial-to-periodic strict temporal preference changes.
+- [x] Inspect artifact verification and note the complete-study-only restriction.
+- [x] Verify archived helper dependency and preserve interpretation limits.
+- [x] Run small checks on completed groups; save findings, commands, source, and results.

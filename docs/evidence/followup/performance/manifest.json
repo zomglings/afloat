@@ -1,0 +1,22 @@
+{
+  "benchmark-source.py": "78cfd75c73d24125c7dbdc4a6e510898d68bbd50b99ae1ec6c96ae49560036e5",
+  "environment.json": "b1ce57833415af3ea09c9a262ae8759f298fb130649d2e3ee38481c80f8c189d",
+  "inference.jsonl": "b3b929202049ec4f38a9c62aa5b563212428060b7898eaec0095095ff97df745",
+  "protocol.json": "c34d77ef9818eec40972206ae2f2f31fe8ba4f4b813c42cbe48413e49b0b3112",
+  "source/LICENSE": "84cdebc0b237d1f1716fbf94cb461e8ea4ab210c130505c327aef181503b1089",
+  "source/README.md": "040f7098838dab94392feb7ea1e39603638eebc4c9df4768f351785c4d8ae7c3",
+  "source/pyproject.toml": "e8e40552ae5ec6abc211962739cdd93e553b0175e94b0cfe0f17e4868dbc0ce1",
+  "source/src/afloat/__init__.py": "d6c939b6209472a10ed7d5914cd89b118d21630b4c542ce56e5a5cde2f03366b",
+  "source/src/afloat/artifacts.py": "e56bfd450f111c5653c0924f991ece85e4ca69ad3d8cf6c17b8a983ab3ec9289",
+  "source/src/afloat/cli.py": "19116f77c73f8ff6d92c75f271d64d3d22da220f177819a2abe31b1d711365b5",
+  "source/src/afloat/diagnostics.py": "1386dc0753bd5e82c54b18c62240bef8a0bf29a987302608a91881a4e0398ae1",
+  "source/src/afloat/formats.py": "5e9e3fb6eba4946f9acfd3a94ea32951acd5801e7aa9e584d00fe00166e113f5",
+  "source/src/afloat/model.py": "8a7e09d47262be96df55d86381f8e68aebc0de89bd05d29626c5c1dd736600eb",
+  "source/src/afloat/plotting.py": "35ae4d50fd73f7a0ccb52d81e8ccb48ce0e9d7414cfbede74edafcc13bd0b330",
+  "source/src/afloat/runner.py": "6ec6c84b14a418aacc7b95a34eeff9efeadc398f921802b18f07d90eb6b05b1f",
+  "source/src/afloat/targets.py": "c2492bf303b0efdfd0ce81d1f746559cbab82231f687dfeb3046fb57a8211fee",
+  "source/uv.lock": "ae296e8a19c1d08d9574dca52dd19f16739f9f3dea4bb8b68e3c443dfe45a7d2",
+  "summary.json": "5bbcb6a1eb4bec1e4e91b53c761a15bedc7f54967f2f541b5b19b4d2728cb80e",
+  "threshold-measurements.jsonl": "cb112983c7d9c5b5bf7f033cd86d6ef707e855f5d7bb4d91521b8eef55da7976",
+  "threshold-results.jsonl": "e4b98b712e234e9f15aaecd101894ef35ce63e358a944d4a2b524d0a52b757d6"
+}

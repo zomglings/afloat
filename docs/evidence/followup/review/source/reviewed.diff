@@ -1,0 +1,460 @@
+diff --git a/scripts/analyze_study.py b/scripts/analyze_study.py
+index 4ac5673..98c6d25 100644
+--- a/scripts/analyze_study.py
++++ b/scripts/analyze_study.py
+@@ -15,7 +15,7 @@ import torch
+ matplotlib.use("Agg")
+ import matplotlib.pyplot as plt
+ 
+-from afloat.formats import MODES
++from afloat.formats import PROTOTYPE_MODES as MODES
+ from afloat.targets import TARGETS, feature_metrics, target_values
+ 
+ 
+@@ -77,6 +77,14 @@ def verify_runs(study):
+     for seed in range(3):
+         root = study / f"seed-{seed}"
+         config = read_json(root / "config.json")
++        for name, default in (
++            ("activation_gain", 1.0),
++            ("final_learning_rate", None),
++            ("input_features", "raw"),
++            ("format_log_every", 1),
++            ("save_checkpoints", False),
++        ):
++            assert config.pop(name, default) == default
+         assert config == {**expected, "seeds": [seed]}
+         env = read_json(root / "environment.json")
+         assert (
+diff --git a/scripts/benchmark_study.py b/scripts/benchmark_study.py
+index e62d671..ff1daed 100644
+--- a/scripts/benchmark_study.py
++++ b/scripts/benchmark_study.py
+@@ -19,7 +19,8 @@ import torch
+ from torch.func import functional_call
+ from torch.utils.benchmark import Timer
+ 
+-from afloat.formats import MODES, FormatPolicy
++from afloat.formats import PROTOTYPE_MODES as MODES
++from afloat.formats import FormatPolicy
+ from afloat.model import make_model
+ from afloat.runner import evaluate, rounded_parameters, training_batch
+ from afloat.targets import TARGETS, sample_inputs, target_values
+diff --git a/src/afloat/cli.py b/src/afloat/cli.py
+index 8baef66..7bc993f 100644
+--- a/src/afloat/cli.py
++++ b/src/afloat/cli.py
+@@ -29,6 +29,11 @@ def main() -> None:
+     run.add_argument("--adapt-every", type=int, default=100)
+     run.add_argument("--sample-size", type=int, default=2048)
+     run.add_argument("--threads", type=int, default=1)
++    run.add_argument("--activation-gain", type=float, default=1.0)
++    run.add_argument("--final-learning-rate", type=float)
++    run.add_argument("--input-features", choices=("raw", "fourier"), default="raw")
++    run.add_argument("--format-log-every", type=int, default=1)
++    run.add_argument("--save-checkpoints", action="store_true")
+     plot = commands.add_parser("plot", help="Regenerate a run's loss plot")
+     plot.add_argument("output", type=Path)
+     plot.add_argument("--destination", type=Path)
+@@ -62,6 +67,11 @@ def main() -> None:
+         adapt_every=args.adapt_every,
+         sample_size=args.sample_size,
+         threads=args.threads,
++        activation_gain=args.activation_gain,
++        final_learning_rate=args.final_learning_rate,
++        input_features=args.input_features,
++        format_log_every=args.format_log_every,
++        save_checkpoints=args.save_checkpoints,
+     )
+     print(run_experiment(config, args.output))
+ 
+diff --git a/src/afloat/formats.py b/src/afloat/formats.py
+index 440cee4..ed9b285 100644
+--- a/src/afloat/formats.py
++++ b/src/afloat/formats.py
+@@ -47,7 +47,15 @@ FORMATS = {
+     "e5m2": FloatFormat("e5m2", 5, 2),
+     "e3m4": FloatFormat("e3m4", 3, 4),
+ }
+-MODES = ("fp32", "fixed-e4m3", "fixed-e5m2", "fixed-hybrid", "calibrated", "adaptive")
++PROTOTYPE_MODES = (
++    "fp32",
++    "fixed-e4m3",
++    "fixed-e5m2",
++    "fixed-hybrid",
++    "calibrated",
++    "adaptive",
++)
++MODES = (*PROTOTYPE_MODES, "fixed-e3m4")
+ 
+ 
+ def array_scale(x: Tensor, fmt: FloatFormat) -> float:
+@@ -89,7 +97,7 @@ def quantize(x: Tensor, fmt: FloatFormat, scale: float | None = None) -> Tensor:
+     return result
+ 
+ 
+-def choose_format(x: Tensor, sample_size: int = 2048) -> str:
++def format_scores(x: Tensor, sample_size: int = 2048) -> dict[str, float]:
+     if sample_size <= 0:
+         raise ValueError("sample_size must be positive")
+     flat = x.detach().flatten()
+@@ -98,6 +106,11 @@ def choose_format(x: Tensor, sample_size: int = 2048) -> str:
+     for name, fmt in FORMATS.items():
+         rounded = quantize(sample, fmt, array_scale(x, fmt))
+         scores[name] = float((sample.double() - rounded.double()).square().mean())
++    return scores
++
++
++def choose_format(x: Tensor, sample_size: int = 2048) -> str:
++    scores = format_scores(x, sample_size)
+     return min(scores, key=lambda name: scores[name])
+ 
+ 
+@@ -121,15 +134,18 @@ class FormatPolicy:
+             return x.detach()
+         key = f"{kind}:{name}"
+         changed = False
++        scores: dict[str, float] | None = None
+         if self.mode.startswith("fixed-"):
+             choice = self.mode.removeprefix("fixed-")
+             if choice == "hybrid":
+                 choice = "e4m3" if kind == "weight" else "e5m2"
+         else:
+             choice = self.choices[key]
++            previous_choice = choice
+             if self.mode == "adaptive" and step > 0 and step % self.interval == 0:
+                 started = perf_counter()
+-                selected = choose_format(x, self.sample_size)
++                scores = format_scores(x, self.sample_size)
++                selected = min(scores, key=lambda name: scores[name])
+                 self.selection_seconds += perf_counter() - started
+                 changed = selected != choice
+                 choice = selected
+@@ -137,6 +153,14 @@ class FormatPolicy:
+         fmt = FORMATS[choice]
+         scale = array_scale(x, fmt)
+         rounded = quantize(x, fmt, scale)
++        changed_elements = 0
++        rounding_change_mse = 0.0
++        if changed:
++            previous = quantize(x, FORMATS[previous_choice])
++            changed_elements = int((previous != rounded).sum())
++            rounding_change_mse = float(
++                (previous.double() - rounded.double()).square().mean()
++            )
+         self.events.append(
+             {
+                 "step": step,
+@@ -148,6 +172,9 @@ class FormatPolicy:
+                 "zeroed": int(((x.detach() != 0) & (rounded == 0)).sum()),
+                 "clipped": int((x.detach().abs() / scale > fmt.levels()[-1]).sum()),
+                 "elements": x.numel(),
++                "candidate_mse": scores,
++                "changed_elements": changed_elements,
++                "rounding_change_mse": rounding_change_mse,
+             }
+         )
+         return rounded
+diff --git a/src/afloat/model.py b/src/afloat/model.py
+index 03fc3b8..98ca296 100644
+--- a/src/afloat/model.py
++++ b/src/afloat/model.py
+@@ -1,12 +1,15 @@
+ """Small residual feed-forward blocks with three activation families."""
+ 
++import math
++
+ import torch
+ from torch import Tensor, nn
+ 
+ 
+ class MixedBlock(nn.Module):
+-    def __init__(self) -> None:
++    def __init__(self, activation_gain: float = 1.0) -> None:
+         super().__init__()
++        self.activation_gain = activation_gain
+         self.expand = nn.Linear(32, 48)
+         self.relu = nn.ReLU()
+         self.tanh = nn.Tanh()
+@@ -14,15 +17,34 @@ class MixedBlock(nn.Module):
+         self.project = nn.Linear(48, 32)
+ 
+     def forward(self, h: Tensor) -> Tensor:
+-        a, b, c = self.expand(h).chunk(3, dim=-1)
++        a, b, c = (self.expand(h) * self.activation_gain).chunk(3, dim=-1)
+         nonlinear = torch.cat((self.relu(a), self.tanh(b), self.silu(c)), dim=-1)
+         result: Tensor = h + self.project(nonlinear)
+         return result
+ 
+ 
+-def make_model(seed: int) -> nn.Sequential:
++class FourierInputs(nn.Module):
++    def forward(self, x: Tensor) -> Tensor:
++        angles = x.unsqueeze(-1) * x.new_tensor([1, 2, 4, 8]) * math.pi
++        return torch.cat((x, angles.sin().flatten(1), angles.cos().flatten(1)), dim=1)
++
++
++def make_model(
++    seed: int, activation_gain: float = 1.0, input_features: str = "raw"
++) -> nn.Sequential:
++    if input_features not in ("raw", "fourier"):
++        raise ValueError("Unknown input features")
+     with torch.random.fork_rng():
+         torch.manual_seed(seed)
+-        return nn.Sequential(
+-            nn.Linear(2, 32), MixedBlock(), MixedBlock(), MixedBlock(), nn.Linear(32, 1)
++        layers = nn.Sequential(
++            nn.Linear(2 if input_features == "raw" else 18, 32),
++            MixedBlock(activation_gain),
++            MixedBlock(activation_gain),
++            MixedBlock(activation_gain),
++            nn.Linear(32, 1),
++        )
++        return (
++            layers
++            if input_features == "raw"
++            else nn.Sequential(FourierInputs(), *layers)
+         )
+diff --git a/src/afloat/runner.py b/src/afloat/runner.py
+index 43290db..b468e7c 100644
+--- a/src/afloat/runner.py
++++ b/src/afloat/runner.py
+@@ -18,6 +18,7 @@ from afloat.formats import MODES, FormatPolicy, choose_format
+ from afloat.model import make_model
+ from afloat.targets import (
+     TARGETS,
++    detail_component_error,
+     feature_metrics,
+     sample_inputs,
+     target_values,
+@@ -38,6 +39,11 @@ class RunConfig:
+     adapt_every: int = 100
+     sample_size: int = 2048
+     threads: int = 1
++    activation_gain: float = 1.0
++    final_learning_rate: float | None = None
++    input_features: str = "raw"
++    format_log_every: int = 1
++    save_checkpoints: bool = False
+ 
+     def validate(self) -> None:
+         for values, allowed in ((self.targets, TARGETS), (self.modes, MODES)):
+@@ -62,6 +68,7 @@ class RunConfig:
+             self.adapt_every,
+             self.sample_size,
+             self.threads,
++            self.format_log_every,
+         ):
+             if value <= 0:
+                 raise ValueError(
+@@ -73,6 +80,29 @@ class RunConfig:
+             or self.learning_rate <= 0
+         ):
+             raise ValueError("Invalid warmup or learning rate")
++        if not math.isfinite(self.activation_gain) or self.activation_gain <= 0:
++            raise ValueError("Activation gain must be finite and positive")
++        if self.input_features not in ("raw", "fourier"):
++            raise ValueError("Unknown input features")
++        if self.final_learning_rate is not None and (
++            not math.isfinite(self.final_learning_rate)
++            or not 0 < self.final_learning_rate <= self.learning_rate
++        ):
++            raise ValueError(
++                "Final learning rate must be positive and no larger than initial"
++            )
++
++
++def update_learning_rate(config: RunConfig, step: int) -> float:
++    if config.final_learning_rate is None:
++        return config.learning_rate
++    fraction = step / max(1, config.steps - 1)
++    return (
++        config.final_learning_rate
++        + (config.learning_rate - config.final_learning_rate)
++        * (1 + math.cos(math.pi * fraction))
++        / 2
++    )
+ 
+ 
+ def training_batch(seed: int, step: int, size: int) -> Tensor:
+@@ -82,7 +112,7 @@ def training_batch(seed: int, step: int, size: int) -> Tensor:
+ def warmup(
+     config: RunConfig, target: str, seed: int
+ ) -> tuple[nn.Sequential, torch.optim.Adam, dict[str, str], float]:
+-    model = make_model(seed)
++    model = make_model(seed, config.activation_gain, config.input_features)
+     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+     for step in range(config.warmup_steps):
+         x = training_batch(seed, step, config.batch_size)
+@@ -173,9 +203,19 @@ def run_condition(
+     initial_selection = (
+         calibration_seconds if mode in ("calibrated", "adaptive") else 0.0
+     )
++    training_seconds = 0.0
++    diagnostic_seconds = 0.0
+ 
+     def measure(step: int, training: dict[str, object]) -> None:
+         metrics, parameters = evaluate(model, policy, target, validation)
++        if target == "detail":
++            with torch.no_grad():
++                prediction = functional_call(
++                    model, parameters, (validation,), strict=True
++                )
++            metrics["detail_component_relative_mse"] = detail_component_error(
++                prediction
++            )
+         row: dict[str, object] = {
+             "target": target,
+             "seed": seed,
+@@ -185,6 +225,8 @@ def run_condition(
+             "initial_calibration_seconds": initial_selection,
+             "reselection_seconds": policy.selection_seconds,
+             "selection_seconds": initial_selection + policy.selection_seconds,
++            "training_seconds": training_seconds,
++            "gradient_probe_seconds": diagnostic_seconds,
+             **training,
+             **metrics,
+         }
+@@ -192,9 +234,26 @@ def run_condition(
+         append_json(output / "metrics.jsonl", row)
+         for activation in activation_statistics(model, parameters, probes):
+             append_json(output / "activations.jsonl", {"step": step, **activation})
++        if config.save_checkpoints:
++            torch.save(
++                {
++                    "model": model.state_dict(),
++                    "optimizer": optimizer.state_dict(),
++                    "format_choices": policy.choices,
++                    "step": step,
++                    "model_settings": {
++                        "activation_gain": config.activation_gain,
++                        "input_features": config.input_features,
++                    },
++                },
++                output / f"step-{step}.pt",
++            )
+ 
+     measure(0, {})
+     for step in range(config.steps):
++        update_started = perf_counter()
++        for group in optimizer.param_groups:
++            group["lr"] = update_learning_rate(config, step)
+         x = training_batch(seed, config.warmup_steps + step, config.batch_size)
+         optimizer.zero_grad(set_to_none=True)
+         parameters = {}
+@@ -222,14 +281,24 @@ def run_condition(
+         original = torch.cat(original_gradients).double()
+         rounded = torch.cat(rounded_gradients).double()
+         should_measure = (step + 1) % config.eval_every == 0 or step + 1 == config.steps
++        probe_started = perf_counter()
+         gradient_metrics = (
+             gradient_comparison(model, target, x, original, rounded)
+             if should_measure
+             else {}
+         )
++        probe_seconds = perf_counter() - probe_started if should_measure else 0.0
++        diagnostic_seconds += probe_seconds
+         optimizer.step()
++        training_seconds += perf_counter() - update_started - probe_seconds
+         for event in policy.events:
+-            append_json(output / "formats.jsonl", event)
++            if (
++                step % config.format_log_every == 0
++                or step == config.steps - 1
++                or event["changed"]
++                or event["candidate_mse"] is not None
++            ):
++                append_json(output / "formats.jsonl", event)
+         policy.events.clear()
+         if should_measure:
+             measure(
+@@ -255,6 +324,10 @@ def run_condition(
+             "validation_predictions": predictions,
+             "mode": mode,
+             "steps": config.steps,
++            "model_settings": {
++                "activation_gain": config.activation_gain,
++                "input_features": config.input_features,
++            },
+         },
+         output / "final.pt",
+     )
+@@ -274,16 +347,22 @@ def run_experiment(config: RunConfig, output: Path) -> Path:
+     torch.save({"validation": validation, "probes": probes}, output / "inputs.pt")
+     records: list[dict[str, object]] = []
+     failures: list[dict[str, object]] = []
+-    model_spec = make_model(config.seeds[0])
++    model_spec = make_model(
++        config.seeds[0], config.activation_gain, config.input_features
++    )
+     try:
+         for target in config.targets:
+             for seed in config.seeds:
+                 group = output / target / f"seed-{seed}"
+                 group.mkdir(parents=True)
+                 try:
++                    warmup_started = perf_counter()
+                     base, optimizer, choices, calibration_seconds = warmup(
+                         config, target, seed
+                     )
++                    warmup_seconds = (
++                        perf_counter() - warmup_started - calibration_seconds
++                    )
+                 except FloatingPointError as error:
+                     write_json(group / "failure.json", {"message": str(error)})
+                     for mode in config.modes:
+@@ -304,7 +383,13 @@ def run_experiment(config: RunConfig, output: Path) -> Path:
+                     group / "initial.pt",
+                 )
+                 write_json(group / "initial-formats.json", choices)
+-                write_json(group / "calibration.json", {"seconds": calibration_seconds})
++                write_json(
++                    group / "calibration.json",
++                    {
++                        "seconds": calibration_seconds,
++                        "warmup_seconds": warmup_seconds,
++                    },
++                )
+                 for mode in config.modes:
+                     print(f"{target} seed={seed} mode={mode}", flush=True)
+                     append_json(
+diff --git a/src/afloat/targets.py b/src/afloat/targets.py
+index bb3bd34..0868566 100644
+--- a/src/afloat/targets.py
++++ b/src/afloat/targets.py
+@@ -38,6 +38,17 @@ def validation_inputs() -> Tensor:
+     return torch.cartesian_prod(axis, axis)
+ 
+ 
++def detail_component_error(prediction: Tensor) -> float:
++    """Measure x2-dependent error on the fixed validation grid; absence scores one."""
++    if prediction.shape != (65 * 65, 1):
++        raise ValueError("Detail component measurement requires the 65-by-65 grid")
++    truth = target_values("detail", validation_inputs()).reshape(65, 65).double()
++    predicted = prediction.detach().reshape(65, 65).double()
++    reference = truth - truth.mean(dim=1, keepdim=True)
++    observed = predicted - predicted.mean(dim=1, keepdim=True)
++    return float((observed - reference).square().mean() / reference.square().mean())
++
++
+ def feature_metrics(name: str, x: Tensor, prediction: Tensor) -> dict[str, float]:
+     errors = (prediction - target_values(name, x)).square().flatten()
+     a, b = x[:, 0], x[:, 1]
+diff --git a/tests/test_formats.py b/tests/test_formats.py
+index 603ec9a..8d10b03 100644
+--- a/tests/test_formats.py
++++ b/tests/test_formats.py
+@@ -79,6 +79,13 @@ def test_selection_tracks_distribution_shape_and_calibration_stays_fixed():
+     assert adaptive.choices["weight:test"] == wide_choice
+     assert calibrated.choices["weight:test"] == narrow_choice
+     assert choices["weight:test"] == narrow_choice
++    switched = adaptive.events[-1]
++    old = quantize(wide, FORMATS[narrow_choice])
++    new = quantize(wide, FORMATS[wide_choice])
++    assert switched["changed_elements"] == int((old != new).sum()) > 0
++    assert switched["rounding_change_mse"] == float(
++        (old.double() - new.double()).square().mean()
++    )
+ 
+ 
+ def test_fixed_and_customized_formats_share_identical_scaling():

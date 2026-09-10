@@ -1,0 +1,5 @@
+- [x] Read follow-up design, source changes, development pilot, and existing controls.
+- [x] Check that feature-learning and format-switch checks answer the intended questions.
+- [x] Inspect learning-rate/gain controls and historical reproduction compatibility.
+- [x] Reproduce bounded issues without running expensive training.
+- [x] Save concrete findings, commands, limitations, and final checklist.

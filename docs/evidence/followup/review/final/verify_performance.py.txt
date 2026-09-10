@@ -1,0 +1,146 @@
+"""Independent raw-data audit; standard library only, no model training."""
+import csv, hashlib, json, math, random, statistics, subprocess
+from pathlib import Path
+
+REPO = Path('/Users/neeraj/src/zomglings/afloat')
+STUDY = REPO / 'runs/followup.KGkx3v'
+OUT = Path(__file__).parent
+PERF = STUDY / 'performance'
+ACCURACY = STUDY / 'accuracy'
+
+def read(path):
+    return json.loads(path.read_text())
+
+def rows(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+def digest(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+def verify_manifest(path):
+    manifest = read(path / 'manifest.json')
+    for name, expected in manifest.items():
+        assert digest(path / name) == expected, (path, name)
+    return len(manifest)
+
+def key(row):
+    return row['gain'], row['seed'], row['mode']
+
+def describe(values):
+    return dict(median=statistics.median(values), min=min(values), max=max(values))
+
+def quantile(values, q):
+    ordered = sorted(values)
+    index = (len(values) - 1) * q
+    lower = math.floor(index)
+    upper = math.ceil(index)
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (index - lower)
+
+protocol = read(PERF / 'protocol.json')
+source_protocol = read(ACCURACY / 'protocol.json')
+plan = source_protocol['plan']
+assert read(REPO / 'docs/followup-protocol.json') == plan
+assert digest(ACCURACY / 'protocol.json') == protocol['source_protocol_sha256']
+assert digest(PERF / 'benchmark-source.py') == protocol['script_sha256']
+manifest_counts = {'performance': verify_manifest(PERF)}
+base_env = read(PERF / 'environment.json')
+assert base_env['git_revision'] == '4d9959e313b1915558f13574d9aee18fd07f256e'
+assert not base_env['git_dirty']
+for gain in plan['activation_gains']:
+    for seed in plan['seeds']:
+        group = ACCURACY / f'gain-{gain:g}-seed-{seed}'
+        manifest_counts[group.name] = verify_manifest(group)
+        environment = read(group / 'environment.json')
+        assert environment == base_env
+for name, expected in base_env['source_hashes'].items():
+    assert digest(PERF / 'source' / name) == expected
+    data = subprocess.check_output(['git', 'show', f"{base_env['git_revision']}:{name}"], cwd=REPO)
+    assert hashlib.sha256(data).hexdigest() == expected, name
+
+cases = rows(PERF / 'threshold-results.jsonl')
+points = rows(PERF / 'threshold-measurements.jsonl')
+inference = rows(PERF / 'inference.jsonl')
+expected = [(gain, seed, mode) for gain in plan['activation_gains'] for seed in plan['performance']['threshold_seeds'] for mode in plan['performance']['threshold_modes']]
+assert len(cases) == len(set(key(c) for c in cases)) == 24
+assert set(map(key,cases)) == set(expected)
+random.Random(plan['performance']['timing_order_seed']).shuffle(expected)
+assert expected == [tuple(x) for x in protocol['threshold_order']] == list(map(key,cases))
+assert all(c['status'] == 'completed' and c['reached'] for c in cases)
+assert len(points) == 398
+threshold = plan['threshold']
+def passes(row):
+    return row['validation_mse'] < threshold['validation_mse_below'] and row['detail_component_relative_mse'] < threshold['detail_component_relative_mse_below'] and threshold['detail_amplitude_at_least'] <= row['detail_amplitude'] <= threshold['detail_amplitude_at_most']
+for case in cases:
+    group = [p for p in points if key(p) == key(case)]
+    assert [p['step'] for p in group] == list(range(0, case['final_step'] + 1, 500))
+    reference = {r['step']:r for r in rows(ACCURACY / f"gain-{case['gain']:g}-seed-{case['seed']}" / 'detail' / f"seed-{case['seed']}" / case['mode'] / 'metrics.jsonl')}
+    streak = 0
+    prev_train = prev_val = 0
+    for i, point in enumerate(group):
+        assert point['model_optimizer_choices_verified']
+        for metric in ('validation_mse', 'detail_amplitude', 'detail_amplitude_error', 'detail_component_relative_mse'):
+            assert point[metric] == reference[point['step']][metric]
+        assert point['passes'] == passes(point)
+        streak = streak + 1 if passes(point) else 0
+        assert streak < 3 or i == len(group) - 1
+        assert point['training_seconds'] >= prev_train and point['validation_seconds'] > prev_val
+        prev_train, prev_val = point['training_seconds'], point['validation_seconds']
+        total = sum(point[k] for k in ('warmup_seconds', 'initial_calibration_seconds', 'training_seconds', 'validation_seconds'))
+        assert total == point['measured_seconds']
+    assert streak == 3
+    assert case['crossing'] == {'step':group[-3]['step'], 'measured_seconds':group[-3]['measured_seconds']}
+    assert case['final_step'] == case['last_validation_step'] == case['crossing']['step'] + 1000
+    for field in ('warmup_seconds','initial_calibration_seconds','training_seconds','validation_seconds','measured_seconds'):
+        assert case[field] == group[-1][field]
+    for metric,value in case['metrics'].items():
+        assert value == group[-1][metric]
+    assert case['reselection_seconds'] <= case['training_seconds']
+    if case['mode'] != 'adaptive':
+        assert case['reselection_seconds'] == 0
+    if case['mode'] not in ('calibrated','adaptive'):
+        assert case['initial_calibration_seconds'] == 0
+
+summaries, paired = [], []
+for gain in plan['activation_gains']:
+    for mode in plan['performance']['threshold_modes']:
+        group = [c for c in cases if c['gain'] == gain and c['mode'] == mode]
+        summary = {'gain':gain,'mode':mode}
+        summary.update({field:describe([c[field] for c in group]) for field in ('measured_seconds','training_seconds','validation_seconds','warmup_seconds','initial_calibration_seconds','reselection_seconds','final_step')})
+        summary['crossing_seconds'] = describe([c['crossing']['measured_seconds'] for c in group])
+        summary['crossing_step'] = describe([c['crossing']['step'] for c in group])
+        summary['training_ms_per_update'] = describe([1000*c['training_seconds']/c['final_step'] for c in group])
+        summaries.append(summary)
+        if mode == 'adaptive': continue
+        adaptive = {c['seed']:c for c in cases if c['gain'] == gain and c['mode'] == 'adaptive'}
+        ratios = {c['seed']:adaptive[c['seed']]['measured_seconds']/c['measured_seconds'] for c in group}
+        paired.append({'gain':gain,'control':mode,'ratios_by_seed':ratios,'adaptive_faster':sum(r<1 for r in ratios.values()),'ratio_of_medians':statistics.median(c['measured_seconds'] for c in adaptive.values()) / statistics.median(c['measured_seconds'] for c in group)})
+
+assert len(inference) == 70
+assert set(map(key,inference)) == {(gain,seed,mode) for gain in plan['activation_gains'] for seed in plan['seeds'] for mode in plan['modes']}
+minimum_block_total = 100
+maximum_iqr_relative = {}
+for row in inference:
+    for field in ('batch_1','batch_128','preparation'):
+        record = row[field]
+        times = [t/record['number_per_run'] for t in record['raw_block_seconds']]
+        assert math.isclose(statistics.median(times), record['median_seconds'], abs_tol=1e-16)
+        iqr = quantile(times,.75)-quantile(times,.25)
+        assert math.isclose(iqr, record['iqr_seconds'], abs_tol=1e-16)
+        block_total = sum(record['raw_block_seconds'])
+        minimum_block_total = min(minimum_block_total, block_total)
+        assert block_total >= .1
+        maximum_iqr_relative[field] = max(maximum_iqr_relative.get(field,0),iqr/record['median_seconds'])
+reported = read(PERF / 'summary.json')
+assert reported['threshold_cases'] == 24 and reported['threshold_reached'] == 24 and reported['threshold_failures'] == 0 and reported['inference_cases'] == 70
+for summary in reported['inference']:
+    group = [r for r in inference if r['gain'] == summary['gain'] and r['mode'] == summary['mode']]
+    for field in ('batch_1','batch_128','preparation'):
+        values = [r[field]['median_seconds'] for r in group]
+        assert summary[field] == dict(median_seconds=statistics.median(values),min_seconds=min(values),max_seconds=max(values))
+
+result = {'manifest_entries':manifest_counts,'accuracy_manifest_total':sum(n for k,n in manifest_counts.items() if k != 'performance'),'source_revision':base_env['git_revision'],'benchmark_source_sha256':protocol['script_sha256'],'threshold_cases':len(cases),'metric_comparisons':len(points),'inference_models':len(inference),'inference_measurements':len(inference)*3,'minimum_raw_block_total_seconds':minimum_block_total,'maximum_relative_iqr':maximum_iqr_relative,'summed_case_work_seconds':sum(c['measured_seconds'] for c in cases),'performance_wall_seconds':reported['wall_seconds'],'summaries':summaries,'paired':paired}
+(OUT / 'verified.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps({k:v for k,v in result.items() if k not in ('manifest_entries','summaries')},indent=2))
+for s in summaries:
+    print(s['gain'],s['mode'],s['crossing_step']['median'],s['final_step']['median'],s['crossing_seconds']['median'],s['measured_seconds'],s['training_ms_per_update']['median'])

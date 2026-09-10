@@ -1,0 +1,532 @@
+{
+  "manifest_entries": {
+    "performance": 20,
+    "gain-1-seed-10": 337,
+    "gain-1-seed-11": 337,
+    "gain-1-seed-12": 337,
+    "gain-1-seed-13": 337,
+    "gain-1-seed-14": 337,
+    "gain-4-seed-10": 337,
+    "gain-4-seed-11": 337,
+    "gain-4-seed-12": 337,
+    "gain-4-seed-13": 337,
+    "gain-4-seed-14": 337
+  },
+  "accuracy_manifest_total": 3370,
+  "source_revision": "4d9959e313b1915558f13574d9aee18fd07f256e",
+  "benchmark_source_sha256": "78cfd75c73d24125c7dbdc4a6e510898d68bbd50b99ae1ec6c96ae49560036e5",
+  "threshold_cases": 24,
+  "metric_comparisons": 398,
+  "inference_models": 70,
+  "inference_measurements": 210,
+  "minimum_raw_block_total_seconds": 0.10007550194859505,
+  "maximum_relative_iqr": {
+    "batch_1": 0.0418171586217967,
+    "batch_128": 0.16914912646359226,
+    "preparation": 0.034617376793421
+  },
+  "summed_case_work_seconds": 464.74976549390703,
+  "performance_wall_seconds": 492.7514432920143,
+  "summaries": [
+    {
+      "gain": 1.0,
+      "mode": "fp32",
+      "measured_seconds": {
+        "median": 1.8621798313688487,
+        "min": 1.8142568331677467,
+        "max": 2.0996189534198493
+      },
+      "training_seconds": {
+        "median": 1.8338157499674708,
+        "min": 1.784129082923755,
+        "max": 2.0690631228499115
+      },
+      "validation_seconds": {
+        "median": 0.00913687376305461,
+        "min": 0.008973208256065845,
+        "max": 0.00999803957529366
+      },
+      "warmup_seconds": {
+        "median": 0.020557790994644165,
+        "min": 0.019227207638323307,
+        "max": 0.021154541987925768
+      },
+      "initial_calibration_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "reselection_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "final_step": {
+        "median": 3000,
+        "min": 3000,
+        "max": 3500
+      },
+      "crossing_seconds": {
+        "median": 1.2898304152768105,
+        "min": 1.2050614161416888,
+        "max": 1.5183190784882754
+      },
+      "crossing_step": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2500
+      },
+      "training_ms_per_update": {
+        "median": 0.5947096943079183,
+        "min": 0.5911608922428319,
+        "max": 0.6112719166558236
+      }
+    },
+    {
+      "gain": 1.0,
+      "mode": "fixed-e3m4",
+      "measured_seconds": {
+        "median": 25.42178179183975,
+        "min": 16.501783462241292,
+        "max": 27.01925695547834
+      },
+      "training_seconds": {
+        "median": 25.362311334349215,
+        "min": 16.454985917313024,
+        "max": 26.960638915654272
+      },
+      "validation_seconds": {
+        "median": 0.03819241467863321,
+        "min": 0.026784877758473158,
+        "max": 0.03926216531544924
+      },
+      "warmup_seconds": {
+        "median": 0.020208292175084352,
+        "min": 0.02001266716979444,
+        "max": 0.020425625145435333
+      },
+      "initial_calibration_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "reselection_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "final_step": {
+        "median": 8000,
+        "min": 5500,
+        "max": 9500
+      },
+      "crossing_seconds": {
+        "median": 22.81365412590094,
+        "min": 13.618156420299783,
+        "max": 23.283969205338508
+      },
+      "crossing_step": {
+        "median": 7000,
+        "min": 4500,
+        "max": 8500
+      },
+      "training_ms_per_update": {
+        "median": 2.991815621329641,
+        "min": 2.669716982563075,
+        "max": 3.370079864456784
+      }
+    },
+    {
+      "gain": 1.0,
+      "mode": "calibrated",
+      "measured_seconds": {
+        "median": 22.641182248480618,
+        "min": 17.35291004064493,
+        "max": 30.507635169196874
+      },
+      "training_seconds": {
+        "median": 22.580421542050317,
+        "min": 17.30063666496426,
+        "max": 30.43524445896037
+      },
+      "validation_seconds": {
+        "median": 0.03478928958065808,
+        "min": 0.027383208507671952,
+        "max": 0.045099085196852684
+      },
+      "warmup_seconds": {
+        "median": 0.020605083787813783,
+        "min": 0.019719709176570177,
+        "max": 0.022044416051357985
+      },
+      "initial_calibration_seconds": {
+        "median": 0.005247208988294005,
+        "min": 0.005170457996428013,
+        "max": 0.005366333061829209
+      },
+      "reselection_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "final_step": {
+        "median": 8500,
+        "min": 6500,
+        "max": 11000
+      },
+      "crossing_seconds": {
+        "median": 20.052278040442616,
+        "min": 14.693287123693153,
+        "max": 27.97672666842118
+      },
+      "crossing_step": {
+        "median": 7500,
+        "min": 5500,
+        "max": 10000
+      },
+      "training_ms_per_update": {
+        "median": 2.661636409994501,
+        "min": 2.6565201814176844,
+        "max": 2.7668404053600337
+      }
+    },
+    {
+      "gain": 1.0,
+      "mode": "adaptive",
+      "measured_seconds": {
+        "median": 19.275001253001392,
+        "min": 14.250940958969295,
+        "max": 23.177995168603957
+      },
+      "training_seconds": {
+        "median": 19.22111404221505,
+        "min": 14.204928874736652,
+        "max": 23.118665044894442
+      },
+      "validation_seconds": {
+        "median": 0.029480043798685074,
+        "min": 0.022036543115973473,
+        "max": 0.0347092067822814
+      },
+      "warmup_seconds": {
+        "median": 0.019181208917871118,
+        "min": 0.018699624110013247,
+        "max": 0.019545916933566332
+      },
+      "initial_calibration_seconds": {
+        "median": 0.005225958069786429,
+        "min": 0.0050749999936670065,
+        "max": 0.0052759170066565275
+      },
+      "reselection_seconds": {
+        "median": 0.3369860490784049,
+        "min": 0.24314211891032755,
+        "max": 0.40980122424662113
+      },
+      "final_step": {
+        "median": 7000,
+        "min": 5000,
+        "max": 8500
+      },
+      "crossing_seconds": {
+        "median": 16.534478585934266,
+        "min": 11.45649820775725,
+        "max": 20.508344834670424
+      },
+      "crossing_step": {
+        "median": 6000,
+        "min": 4000,
+        "max": 7500
+      },
+      "training_ms_per_update": {
+        "median": 2.74587343460215,
+        "min": 2.7198429464581695,
+        "max": 2.84098577494733
+      }
+    },
+    {
+      "gain": 4.0,
+      "mode": "fp32",
+      "measured_seconds": {
+        "median": 3.843649626011029,
+        "min": 3.7182885389775038,
+        "max": 4.115436994703487
+      },
+      "training_seconds": {
+        "median": 3.8036940852180123,
+        "min": 3.677085957955569,
+        "max": 4.075122412992641
+      },
+      "validation_seconds": {
+        "median": 0.017861373955383897,
+        "min": 0.017073580995202065,
+        "max": 0.020628164522349834
+      },
+      "warmup_seconds": {
+        "median": 0.022094166837632656,
+        "min": 0.019686417188495398,
+        "max": 0.024129000026732683
+      },
+      "initial_calibration_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "reselection_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "final_step": {
+        "median": 6500,
+        "min": 6000,
+        "max": 7000
+      },
+      "crossing_seconds": {
+        "median": 3.2646803758107126,
+        "min": 3.104039498139173,
+        "max": 3.5332094128243625
+      },
+      "crossing_step": {
+        "median": 5500,
+        "min": 5000,
+        "max": 6000
+      },
+      "training_ms_per_update": {
+        "median": 0.5851837054181558,
+        "min": 0.5821603447132345,
+        "max": 0.6128476596592615
+      }
+    },
+    {
+      "gain": 4.0,
+      "mode": "fixed-e3m4",
+      "measured_seconds": {
+        "median": 26.446345539065078,
+        "min": 22.8710183755029,
+        "max": 29.857042628806084
+      },
+      "training_seconds": {
+        "median": 26.382273541064933,
+        "min": 22.816510708536953,
+        "max": 29.79213379160501
+      },
+      "validation_seconds": {
+        "median": 0.041147664887830615,
+        "min": 0.03466887609101832,
+        "max": 0.04498242028057575
+      },
+      "warmup_seconds": {
+        "median": 0.019926416920498013,
+        "min": 0.019838790874928236,
+        "max": 0.022924333112314343
+      },
+      "initial_calibration_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "reselection_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "final_step": {
+        "median": 9500,
+        "min": 8500,
+        "max": 11000
+      },
+      "crossing_seconds": {
+        "median": 23.825508455745876,
+        "min": 20.017986708553508,
+        "max": 27.175598378526047
+      },
+      "crossing_step": {
+        "median": 8500,
+        "min": 7500,
+        "max": 10000
+      },
+      "training_ms_per_update": {
+        "median": 2.708375799236819,
+        "min": 2.6842953774749354,
+        "max": 2.7770814253752563
+      }
+    },
+    {
+      "gain": 4.0,
+      "mode": "calibrated",
+      "measured_seconds": {
+        "median": 25.16412379150279,
+        "min": 24.275600499939173,
+        "max": 27.964241334004328
+      },
+      "training_seconds": {
+        "median": 25.099527126643807,
+        "min": 24.213470624992624,
+        "max": 27.895301542477682
+      },
+      "validation_seconds": {
+        "median": 0.03884624782949686,
+        "min": 0.03664204082451761,
+        "max": 0.04309541662223637
+      },
+      "warmup_seconds": {
+        "median": 0.019766584038734436,
+        "min": 0.01957775093615055,
+        "max": 0.020845457911491394
+      },
+      "initial_calibration_seconds": {
+        "median": 0.005721250083297491,
+        "min": 0.004998916992917657,
+        "max": 0.006172666093334556
+      },
+      "reselection_seconds": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "final_step": {
+        "median": 9500,
+        "min": 8500,
+        "max": 10500
+      },
+      "crossing_seconds": {
+        "median": 22.475118667585775,
+        "min": 21.158198332879692,
+        "max": 25.260583666851744
+      },
+      "crossing_step": {
+        "median": 8500,
+        "min": 7500,
+        "max": 9500
+      },
+      "training_ms_per_update": {
+        "median": 2.6566953849978745,
+        "min": 2.6420554870151376,
+        "max": 2.848643602940309
+      }
+    },
+    {
+      "gain": 4.0,
+      "mode": "adaptive",
+      "measured_seconds": {
+        "median": 28.880926749901846,
+        "min": 23.81682899966836,
+        "max": 41.87171974941157
+      },
+      "training_seconds": {
+        "median": 28.809746456565335,
+        "min": 23.751015292480588,
+        "max": 41.75658808276057
+      },
+      "validation_seconds": {
+        "median": 0.0438305432908237,
+        "min": 0.0357094572391361,
+        "max": 0.06406729156151414
+      },
+      "warmup_seconds": {
+        "median": 0.023794832872226834,
+        "min": 0.0218447910156101,
+        "max": 0.042132459115237
+      },
+      "initial_calibration_seconds": {
+        "median": 0.006309417076408863,
+        "min": 0.005504959030076861,
+        "max": 0.008931915974244475
+      },
+      "reselection_seconds": {
+        "median": 0.49984538671560585,
+        "min": 0.40128788887523115,
+        "max": 0.7035154930781573
+      },
+      "final_step": {
+        "median": 10000,
+        "min": 8000,
+        "max": 13000
+      },
+      "crossing_seconds": {
+        "median": 26.124009041814134,
+        "min": 20.988742207409814,
+        "max": 38.88075033156201
+      },
+      "crossing_step": {
+        "median": 9000,
+        "min": 7000,
+        "max": 12000
+      },
+      "training_ms_per_update": {
+        "median": 2.9688769115600735,
+        "min": 2.8809746456565337,
+        "max": 3.2120452371354284
+      }
+    }
+  ],
+  "paired": [
+    {
+      "gain": 1.0,
+      "control": "fp32",
+      "ratios_by_seed": {
+        "12": 6.787393939151402,
+        "10": 12.446700784835752,
+        "11": 10.624185562165785
+      },
+      "adaptive_faster": 0,
+      "ratio_of_medians": 10.350773286397775
+    },
+    {
+      "gain": 1.0,
+      "control": "fixed-e3m4",
+      "ratios_by_seed": {
+        "11": 0.7133801379054302,
+        "12": 0.8636000461148771,
+        "10": 0.9117376334354331
+      },
+      "adaptive_faster": 3,
+      "ratio_of_medians": 0.758208115026326
+    },
+    {
+      "gain": 1.0,
+      "control": "calibrated",
+      "ratios_by_seed": {
+        "12": 0.629425654657483,
+        "11": 1.1107647770808722,
+        "10": 0.7597440784924048
+      },
+      "adaptive_faster": 2,
+      "ratio_of_medians": 0.8513248575742939
+    },
+    {
+      "gain": 4.0,
+      "control": "fp32",
+      "ratios_by_seed": {
+        "11": 11.261019501441359,
+        "10": 6.196410005348396,
+        "12": 7.017705965872207
+      },
+      "adaptive_faster": 0,
+      "ratio_of_medians": 7.5139332561575625
+    },
+    {
+      "gain": 4.0,
+      "control": "fixed-e3m4",
+      "ratios_by_seed": {
+        "11": 1.4024068046516343,
+        "12": 1.092057377350702,
+        "10": 1.0413541106319304
+      },
+      "adaptive_faster": 0,
+      "ratio_of_medians": 1.092057377350702
+    },
+    {
+      "gain": 4.0,
+      "control": "calibrated",
+      "ratios_by_seed": {
+        "11": 1.724847949673438,
+        "10": 0.8516887232948908,
+        "12": 1.1477024588336397
+      },
+      "adaptive_faster": 1,
+      "ratio_of_medians": 1.1477024588336397
+    }
+  ]
+}

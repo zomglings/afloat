@@ -1,0 +1,142 @@
+{
+  "hardware": {
+    "cpu": "Apple M5 Pro",
+    "machine": "arm64",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O"
+  },
+  "processes": 1,
+  "scope": "Measured warmup plus initial calibration when applicable, training blocks, and threshold validation. Excludes reference checkpoint reads/comparisons, logging, inference benchmark, and source capture. Original 20000-step learning-rate schedule retained even if stopped early.",
+  "script_sha256": "78cfd75c73d24125c7dbdc4a6e510898d68bbd50b99ae1ec6c96ae49560036e5",
+  "source_protocol_sha256": "70a2ad58a87e1776f32e79ed845230c4286ace0a3695de5fc0abfe4569a3b925",
+  "started_at": "2026-09-10T13:13:05.102625+00:00",
+  "threads": 1,
+  "threshold": {
+    "consecutive_measurements": 3,
+    "detail_amplitude_at_least": 0.008,
+    "detail_amplitude_at_most": 0.012,
+    "detail_component_relative_mse_below": 0.25,
+    "validation_mse_below": 0.0001
+  },
+  "threshold_order": [
+    [
+      4.0,
+      10,
+      "adaptive"
+    ],
+    [
+      4.0,
+      11,
+      "calibrated"
+    ],
+    [
+      1.0,
+      11,
+      "fixed-e3m4"
+    ],
+    [
+      4.0,
+      11,
+      "adaptive"
+    ],
+    [
+      1.0,
+      12,
+      "fixed-e3m4"
+    ],
+    [
+      4.0,
+      11,
+      "fp32"
+    ],
+    [
+      4.0,
+      12,
+      "adaptive"
+    ],
+    [
+      4.0,
+      11,
+      "fixed-e3m4"
+    ],
+    [
+      1.0,
+      12,
+      "calibrated"
+    ],
+    [
+      1.0,
+      10,
+      "adaptive"
+    ],
+    [
+      4.0,
+      10,
+      "fp32"
+    ],
+    [
+      1.0,
+      11,
+      "adaptive"
+    ],
+    [
+      4.0,
+      12,
+      "fixed-e3m4"
+    ],
+    [
+      1.0,
+      12,
+      "fp32"
+    ],
+    [
+      1.0,
+      11,
+      "calibrated"
+    ],
+    [
+      1.0,
+      10,
+      "fixed-e3m4"
+    ],
+    [
+      4.0,
+      10,
+      "fixed-e3m4"
+    ],
+    [
+      1.0,
+      10,
+      "fp32"
+    ],
+    [
+      1.0,
+      12,
+      "adaptive"
+    ],
+    [
+      1.0,
+      11,
+      "fp32"
+    ],
+    [
+      1.0,
+      10,
+      "calibrated"
+    ],
+    [
+      4.0,
+      10,
+      "calibrated"
+    ],
+    [
+      4.0,
+      12,
+      "fp32"
+    ],
+    [
+      4.0,
+      12,
+      "calibrated"
+    ]
+  ]
+}

@@ -1,0 +1,5 @@
+- [x] Identify completed groups and collect raw final measurements.
+- [x] Independently calculate means, sample standard deviations, paired comparisons, and threshold counts.
+- [x] Include the final group after completion was recorded and verify declared totals.
+- [x] Save exact calculations, all paired seed ratios, supported conclusions, and limits.
+- [x] Notify parent that no CPU-heavy work remains before serial timing.

@@ -1,0 +1,12 @@
+[
+  {
+    "injected_failure": "warmup",
+    "remaining_case_completed": true,
+    "summary_and_manifest_written": true
+  },
+  {
+    "injected_failure": "partial_block",
+    "remaining_case_completed": true,
+    "summary_and_manifest_written": true
+  }
+]

@@ -1,0 +1,46 @@
+{
+  "finished_at": "2026-09-10T13:11:30.592835+00:00",
+  "outcomes": [
+    {
+      "exit_code": 0,
+      "name": "gain-1-seed-10"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-1-seed-12"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-1-seed-11"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-1-seed-13"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-1-seed-14"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-4-seed-10"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-4-seed-11"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-4-seed-12"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-4-seed-13"
+    },
+    {
+      "exit_code": 0,
+      "name": "gain-4-seed-14"
+    }
+  ],
+  "wall_seconds": 1513.7904259171337
+}

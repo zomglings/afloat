@@ -1,0 +1,55 @@
+import importlib.util
+import json
+import sys
+from pathlib import Path
+import torch
+root=Path('/Users/neeraj/src/zomglings/afloat')
+out=Path(__file__).parent
+class DummyOptimizer:
+    def state_dict(self):return {}
+results=[]
+for kind in ('warmup','partial_block'):
+    spec=importlib.util.spec_from_file_location(kind,root/'runs/followup.KGkx3v/benchmark_followup.py')
+    m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+    case=out/('continuation-'+kind);case.mkdir();study=case/'study';study.mkdir()
+    plan=json.loads((root/'docs/followup-protocol.json').read_text())
+    plan.update(activation_gains=[1.],seeds=[10,11],modes=['fp32'],steps=500)
+    plan['performance'].update(threshold_seeds=[10,11],threshold_modes=['fp32'])
+    (study/'protocol.json').write_text(json.dumps({'plan':plan}))
+    (study/'completion.json').write_text(json.dumps({'outcomes':[{'exit_code':0} for _ in range(10)]}))
+    model=torch.nn.Linear(1,1);env={'source_hashes':{},'dependencies':{}}
+    metrics={'validation_mse':1.,'detail_component_relative_mse':1.,'detail_amplitude':0.}
+    for seed in (10,11):
+        base=study/f'gain-1-seed-{seed}';group=base/'detail'/f'seed-{seed}'/'fp32';group.mkdir(parents=True)
+        (base/'environment.json').write_text(json.dumps(env))
+        torch.save({'validation':torch.zeros(1,1)},base/'inputs.pt')
+        (group/'metrics.jsonl').write_text('\n'.join(json.dumps({'step':step,**metrics}) for step in (0,500))+'\n')
+        for step in (0,500):torch.save({'model':model.state_dict(),'optimizer':{},'format_choices':{}},group/f'step-{step}.pt')
+        torch.save({'model':model.state_dict(),'model_settings':{},'format_choices':{},'rounded_parameters':{k:v.detach() for k,v in model.named_parameters()}},group/'final.pt')
+    m.platform.system=lambda:'Test'
+    m.record_source=lambda p:(p/'environment.json').write_text(json.dumps(env))
+    ticks=iter(range(10000));m.perf_counter=lambda:float(next(ticks))
+    def warmup(config,target,seed):
+        if kind=='warmup' and seed==10:raise FloatingPointError('injected setup failure')
+        return model,DummyOptimizer(),{},.1
+    m.warmup=warmup
+    def block(model,optimizer,policy,config,seed,start,end,progress=None):
+        if seed==10:
+            if progress is not None:progress['completed_step']=123
+            raise FloatingPointError('injected block failure')
+        if progress is not None:progress['completed_step']=end
+    m.train_block=block
+    m.evaluate=lambda *args:metrics.copy()
+    m.make_model=lambda *args,**kwargs:model
+    m.timed=lambda fn:{'median_seconds':.01,'iqr_seconds':0.,'number_per_run':1,'raw_block_seconds':[.01]}
+    sys.argv=['benchmark_followup.py',str(study),'--output',str(case/'output')]
+    try:m.main()
+    except RuntimeError as e:assert 'Threshold replays failed' in str(e)
+    rows=[json.loads(l) for l in (case/'output/threshold-results.jsonl').read_text().splitlines()]
+    summary=json.loads((case/'output/summary.json').read_text())
+    assert len(rows)==2 and {r['seed']:r['status'] for r in rows}=={10:'numerical_failure',11:'completed'}
+    assert summary['threshold_cases']==2 and summary['threshold_failures']==1 and summary['inference_cases']==2
+    assert (case/'output/manifest.json').exists()
+    results.append({'injected_failure':kind,'remaining_case_completed':True,'summary_and_manifest_written':True})
+(out/'continuation-results.json').write_text(json.dumps(results,indent=2)+'\n')
+print(json.dumps(results,indent=2))

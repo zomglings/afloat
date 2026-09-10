@@ -1,0 +1,14 @@
+{"mode": "calibrated", "seed": 10, "status": "started", "target": "detail"}
+{"mode": "calibrated", "seed": 10, "status": "completed", "target": "detail"}
+{"mode": "fixed-e5m2", "seed": 10, "status": "started", "target": "detail"}
+{"mode": "fixed-e5m2", "seed": 10, "status": "completed", "target": "detail"}
+{"mode": "adaptive", "seed": 10, "status": "started", "target": "detail"}
+{"mode": "adaptive", "seed": 10, "status": "completed", "target": "detail"}
+{"mode": "fixed-e4m3", "seed": 10, "status": "started", "target": "detail"}
+{"mode": "fixed-e4m3", "seed": 10, "status": "completed", "target": "detail"}
+{"mode": "fp32", "seed": 10, "status": "started", "target": "detail"}
+{"mode": "fp32", "seed": 10, "status": "completed", "target": "detail"}
+{"mode": "fixed-hybrid", "seed": 10, "status": "started", "target": "detail"}
+{"mode": "fixed-hybrid", "seed": 10, "status": "completed", "target": "detail"}
+{"mode": "fixed-e3m4", "seed": 10, "status": "started", "target": "detail"}
+{"mode": "fixed-e3m4", "seed": 10, "status": "completed", "target": "detail"}

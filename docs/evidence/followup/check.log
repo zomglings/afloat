@@ -1,0 +1,21 @@
+uv run ruff check .
+All checks passed!
+uv run ruff format --check .
+43 files already formatted
+uv run mypy
+Success: no issues found in 9 source files
+uv run pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/neeraj/src/zomglings/afloat
+configfile: pyproject.toml
+testpaths: tests
+collected 51 items
+
+tests/test_followup.py ............                                      [ 23%]
+tests/test_followup_benchmark.py ......                                  [ 35%]
+tests/test_formats.py ..............                                     [ 62%]
+tests/test_network.py .........                                          [ 80%]
+tests/test_runner.py ..........                                          [100%]
+
+============================== 51 passed in 5.86s ==============================

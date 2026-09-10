@@ -1,0 +1,64 @@
+"""Logical-clock checks of setup/block failures, streak reset, and censoring."""
+import importlib.util
+import json
+from pathlib import Path
+import torch
+root=Path('/Users/neeraj/src/zomglings/afloat')
+source=root/'runs/followup.KGkx3v/benchmark_followup.py'
+out=Path(__file__).parent
+class DummyOptimizer:
+    def state_dict(self): return {}
+
+def run_case(kind,sequence):
+    spec=importlib.util.spec_from_file_location('patched_'+kind,source)
+    m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+    work=out/('patched-'+kind);work.mkdir()
+    study=work/'study';study.mkdir()
+    base=study/'gain-1-seed-10';group=base/'detail/seed-10/fp32';group.mkdir(parents=True)
+    output=work/'output';output.mkdir()
+    plan=json.loads((root/'docs/followup-protocol.json').read_text())
+    plan.update(steps=500*(len(sequence)-1),modes=['fp32'])
+    model=torch.nn.Linear(1,1)
+    reference=[]
+    for i,passed in enumerate(sequence):
+        metrics={'validation_mse':.00001 if passed else 1.,'detail_component_relative_mse':.1 if passed else 1.,'detail_amplitude':.01 if passed else 0.}
+        reference.append({'step':i*500,**metrics})
+        torch.save({'model':model.state_dict(),'optimizer':{},'format_choices':{}},group/f'step-{i*500}.pt')
+    (group/'metrics.jsonl').write_text('\n'.join(json.dumps(r) for r in reference)+'\n')
+    torch.save({'validation':torch.zeros(1,1)},base/'inputs.pt')
+    ticks=iter(range(10000));m.perf_counter=lambda:float(next(ticks))
+    def warmup(*args):
+        if kind=='warmup_failure': raise FloatingPointError('injected setup failure')
+        return model,DummyOptimizer(),{},.1
+    m.warmup=warmup
+    def block(model,optimizer,policy,config,seed,start,end,progress):
+        if kind=='partial_block_failure':
+            progress['completed_step']=123
+            raise FloatingPointError('injected partial block failure')
+        progress['completed_step']=end
+    m.train_block=block
+    values=iter(reference)
+    def evaluate(*args):
+        r=next(values)
+        if kind=='validation_failure' and r['step']==500: raise FloatingPointError('injected validation failure')
+        return {k:v for k,v in r.items() if k!='step'}
+    m.evaluate=evaluate
+    r=m.replay_case(study,output,plan,1.,10,'fp32')
+    if kind=='warmup_failure':
+        assert r['status']=='numerical_failure' and r['measured_seconds']==1 and r['unsplit_failed_setup_seconds']==1
+        assert r['warmup_seconds'] is None and r['initial_calibration_seconds'] is None
+    elif kind=='partial_block_failure':
+        assert r['status']=='numerical_failure' and r['final_step']==123 and r['training_seconds']==1
+        assert r['validation_seconds']==1 and r['measured_seconds']==2.9 and r['last_validation_step']==0
+    elif kind=='validation_failure':
+        assert r['status']=='numerical_failure' and r['final_step']==500 and r['validation_seconds']==2 and r['measured_seconds']==3.9
+    elif kind=='reset_then_pass':
+        assert r['reached'] and r['crossing']['step']==1000 and r['final_step']==2000
+    elif kind=='never_reaches':
+        assert not r['reached'] and r['crossing'] is None and r['final_step']==1000 and r['measured_seconds']==5.9
+    elif kind=='passes_from_initial':
+        assert r['reached'] and r['crossing']['step']==0 and r['final_step']==1000
+    return {'case':kind,**r}
+results=[run_case('warmup_failure',[False,False]),run_case('partial_block_failure',[False,False]),run_case('validation_failure',[False,False]),run_case('reset_then_pass',[True,False,True,True,True]),run_case('never_reaches',[False,True,False]),run_case('passes_from_initial',[True,True,True])]
+(out/'patched-results.json').write_text(json.dumps(results,indent=2)+'\n')
+for r in results:print(r['case'],r['status'],'reached',r['reached'],'completed',r['final_step'],'measured',r['measured_seconds'],'crossing',r['crossing'])

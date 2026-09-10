@@ -1,0 +1,23 @@
+[
+  {
+    "case": "warmup_failure",
+    "exception": "FloatingPointError: injected warmup failure",
+    "threshold_record": null,
+    "summary_written": false
+  },
+  {
+    "case": "partial_block_failure",
+    "exception": "RuntimeError: Threshold replays failed; see saved outcomes",
+    "threshold_record": {
+      "gain": 1.0,
+      "initial_calibration_seconds": 0.0,
+      "message": "injected partial-block failure",
+      "mode": "fp32",
+      "seed": 10,
+      "status": "numerical_failure",
+      "training_seconds": 0.0,
+      "warmup_seconds": 0.9
+    },
+    "summary_written": true
+  }
+]

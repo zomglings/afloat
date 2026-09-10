@@ -1,0 +1,61 @@
+"""Development-only feature learnability and format-choice observations."""
+import argparse
+import json
+import math
+from pathlib import Path
+from time import perf_counter
+
+import torch
+from afloat.artifacts import append_json, record_manifest, record_source, write_json
+from afloat.diagnostics import activation_statistics
+from afloat.formats import FORMATS, quantize
+from afloat.runner import RunConfig, training_batch, update_learning_rate, warmup
+from afloat.targets import feature_metrics, sample_inputs, target_values, validation_inputs
+
+parser=argparse.ArgumentParser()
+parser.add_argument('--output',type=Path,required=True)
+parser.add_argument('--seed',type=int,default=100)
+parser.add_argument('--gains',type=float,nargs='+',default=[1,4,8])
+args=parser.parse_args()
+args.output.mkdir(exist_ok=False)
+record_source(args.output)
+write_json(args.output/'protocol.json',{'seed':args.seed,'gains':args.gains,'steps':20000,'warmup':50,'batch':128,'initial_lr':.001,'final_lr':.00001,'measurement_every':1000,'role':'development; not final comparison'})
+(args.output/'development-source.py').write_bytes(Path(__file__).read_bytes())
+torch.set_num_threads(1)
+torch.use_deterministic_algorithms(True)
+xval=validation_inputs(); probes=sample_inputs(9_000_000,512)
+truth=target_values('detail',xval)
+grid=truth.reshape(65,65).double(); component=grid-grid.mean(1,keepdim=True)
+started=perf_counter()
+for gain in args.gains:
+    output=args.output/f'gain-{gain:g}'; output.mkdir()
+    config=RunConfig(targets=('detail',),modes=('fp32',),seeds=(args.seed,),steps=20000,warmup_steps=50,eval_every=1000,activation_gain=gain,final_learning_rate=.00001)
+    model,optimizer,initial,cost=warmup(config,'detail',args.seed)
+    def measure(step):
+        with torch.no_grad():
+            pred=model(xval)
+        metrics=feature_metrics('detail',xval,pred)
+        pgrid=pred.reshape(65,65).double(); isolated=pgrid-pgrid.mean(1,keepdim=True)
+        metrics['detail_component_relative_mse']=float((isolated-component).square().mean()/component.square().mean())
+        row={'gain':gain,'seed':args.seed,'step':step,**metrics}
+        append_json(output/'metrics.jsonl',row)
+        for act in activation_statistics(model,dict(model.named_parameters()),probes):
+            append_json(output/'activations.jsonl',{'step':step,**act})
+        for name,p in model.named_parameters():
+            for kind,values in [('weight',p),('gradient',p.grad)]:
+                if values is None: continue
+                scores={f:float((values.detach().double()-quantize(values,fmt).double()).square().mean()) for f,fmt in FORMATS.items()}
+                append_json(output/'formats.jsonl',{'step':step,'array':f'{kind}:{name}','elements':p.numel(),'scores':scores,'choice':min(scores,key=scores.get)})
+        torch.save({'model':model.state_dict(),'optimizer':optimizer.state_dict(),'predictions':pred,'step':step,'gain':gain},output/f'step-{step}.pt')
+        print(json.dumps(row),flush=True)
+    measure(0)
+    for step in range(config.steps):
+        for group in optimizer.param_groups: group['lr']=update_learning_rate(config,step)
+        x=training_batch(args.seed,50+step,128)
+        optimizer.zero_grad(set_to_none=True)
+        loss=(model(x)-target_values('detail',x)).square().mean()
+        assert torch.isfinite(loss)
+        loss.backward(); optimizer.step()
+        if (step+1)%1000==0: measure(step+1)
+write_json(args.output/'completion.json',{'wall_seconds':perf_counter()-started,'status':'completed'})
+record_manifest(args.output)

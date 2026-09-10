@@ -1,0 +1,14 @@
+{"mode": "fixed-e5m2", "seed": 13, "status": "started", "target": "detail"}
+{"mode": "fixed-e5m2", "seed": 13, "status": "completed", "target": "detail"}
+{"mode": "fixed-hybrid", "seed": 13, "status": "started", "target": "detail"}
+{"mode": "fixed-hybrid", "seed": 13, "status": "completed", "target": "detail"}
+{"mode": "adaptive", "seed": 13, "status": "started", "target": "detail"}
+{"mode": "adaptive", "seed": 13, "status": "completed", "target": "detail"}
+{"mode": "fixed-e4m3", "seed": 13, "status": "started", "target": "detail"}
+{"mode": "fixed-e4m3", "seed": 13, "status": "completed", "target": "detail"}
+{"mode": "calibrated", "seed": 13, "status": "started", "target": "detail"}
+{"mode": "calibrated", "seed": 13, "status": "completed", "target": "detail"}
+{"mode": "fixed-e3m4", "seed": 13, "status": "started", "target": "detail"}
+{"mode": "fixed-e3m4", "seed": 13, "status": "completed", "target": "detail"}
+{"mode": "fp32", "seed": 13, "status": "started", "target": "detail"}
+{"mode": "fp32", "seed": 13, "status": "completed", "target": "detail"}

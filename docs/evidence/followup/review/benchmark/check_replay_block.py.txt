@@ -1,0 +1,41 @@
+import importlib.util
+import json
+from pathlib import Path
+import torch
+from afloat.formats import FormatPolicy
+from afloat.model import make_model
+from afloat.runner import RunConfig
+root=Path('/Users/neeraj/src/zomglings/afloat')
+spec=importlib.util.spec_from_file_location('benchmark',root/'runs/followup.KGkx3v/benchmark_followup.py')
+b=importlib.util.module_from_spec(spec);spec.loader.exec_module(b)
+p=Path('/var/folders/x5/qnn2lxld3j75g3kt9dj_v1v40000gn/T/tmp.CyeMye920M/tiny')
+saved=json.loads((p/'config.json').read_text())
+for key in ('targets','modes','seeds'): saved[key]=tuple(saved[key])
+config=RunConfig(**saved)
+torch.set_num_threads(1)
+checks=[]
+for mode in config.modes:
+    group=p/'detail/seed-777'/mode
+    start=torch.load(group/'step-2.pt',weights_only=True)
+    end=torch.load(group/'step-4.pt',weights_only=True)
+    model=make_model(777,**start['model_settings']);model.load_state_dict(start['model'])
+    optimizer=torch.optim.Adam(model.parameters(),lr=config.learning_rate);optimizer.load_state_dict(start['optimizer'])
+    policy=FormatPolicy(mode,start['format_choices'],config.adapt_every,config.sample_size)
+    b.train_block(model,optimizer,policy,config,777,2,4)
+    b.assert_same(model.state_dict(),end['model'])
+    b.assert_same(optimizer.state_dict(),end['optimizer'])
+    b.assert_same(policy.choices,end['format_choices'])
+    inputs=torch.load(p/'inputs.pt',weights_only=True)['validation']
+    metrics=b.evaluate(model,policy,inputs)
+    reference=json.loads((group/'metrics.jsonl').read_text().splitlines()[-1])
+    assert all(value==reference[key] for key,value in metrics.items())
+    checks.append(mode)
+plan=json.loads((root/'docs/followup-protocol.json').read_text())
+assert b.config_for(plan,4,10).steps==20000
+base={'validation_mse':.00001,'detail_component_relative_mse':.1,'detail_amplitude':.01}
+assert b.passes(base,plan['threshold'])
+for key,value in [('validation_mse',.0001),('detail_component_relative_mse',.25),('detail_amplitude',.00799),('detail_amplitude',.01201)]:
+    assert not b.passes({**base,key:value},plan['threshold'])
+result={'exact_two_update_replays':checks,'frozen_cosine_horizon':20000,'strict_threshold_boundaries_verified':True}
+Path(__file__).with_name('block-results.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result,indent=2))

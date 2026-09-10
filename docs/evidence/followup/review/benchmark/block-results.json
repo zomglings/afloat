@@ -1,0 +1,13 @@
+{
+  "exact_two_update_replays": [
+    "fp32",
+    "fixed-e4m3",
+    "fixed-e5m2",
+    "fixed-hybrid",
+    "calibrated",
+    "adaptive",
+    "fixed-e3m4"
+  ],
+  "frozen_cosine_horizon": 20000,
+  "strict_threshold_boundaries_verified": true
+}

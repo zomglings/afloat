@@ -1,0 +1,6 @@
+- [x] Read frozen protocol, source changes, tests, and launch/checkpoint implementation.
+- [x] Check paired controls, numerical semantics, saved checkpoint reconstruction, and timing boundaries.
+- [x] Reproduce small exact checkpoint continuations and launcher construction without expensive studies.
+- [x] Verify historical compatibility handling and declared launch scope.
+- [x] Verify the corrected format-switch evidence and focused tests.
+- [x] Save findings and commands; identify the separate pending performance review before handoff.

@@ -1,0 +1,56 @@
+import importlib.util
+import json
+from dataclasses import asdict
+from pathlib import Path
+import torch
+from afloat.runner import RunConfig, update_learning_rate
+from afloat.model import make_model
+from afloat.formats import PROTOTYPE_MODES
+
+root=Path('/Users/neeraj/src/zomglings/afloat')
+out=Path(__file__).parent
+study=root/'runs/full-study.NzhhwC'
+pilot=root/'runs/followup.KGkx3v/development-100'
+report={}
+for group in sorted(pilot.glob('gain-*')):
+    rows=[json.loads(line) for line in (group/'metrics.jsonl').read_text().splitlines()]
+    final=rows[-3:]
+    gate=[.008 <= r['detail_amplitude'] <= .012 and r['detail_component_relative_mse'] < .25 and r['validation_mse'] < .0001 for r in final]
+    events=[json.loads(line) for line in (group/'formats.jsonl').read_text().splitlines()]
+    large=[e for e in events if e['elements']>=32]
+    previous={};switches=[]
+    for e in large:
+        if e['array'] in previous and previous[e['array']]!=e['choice']:
+            switches.append({'array':e['array'],'step':e['step'],'choice':e['choice']})
+        previous[e['array']]=e['choice']
+    report[group.name]={'final_three':final,'feature_checks_pass':gate,'substantial_array_choices':sorted({e['choice'] for e in large}),'substantial_switches':switches}
+# Minimal fixture stops at the exact config comparison before any run records load.
+fixture=out/'new-default-config';fixture.mkdir(exist_ok=True)
+(fixture/'seed-0').mkdir(exist_ok=True)
+(fixture/'completion.json').write_bytes((study/'completion.json').read_bytes())
+old=json.loads((study/'seed-0/config.json').read_text())
+new={**old,'activation_gain':1.0,'final_learning_rate':None}
+(fixture/'seed-0/config.json').write_text(json.dumps(new))
+spec=importlib.util.spec_from_file_location('analyze_study',root/'scripts/analyze_study.py')
+module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+try:
+    module.verify_runs(fixture)
+except AssertionError:
+    report['prototype_default_config_rejected']=True
+else:
+    report['prototype_default_config_rejected']=False
+config=RunConfig(steps=20000,final_learning_rate=.00001)
+report['cosine_endpoints']=[update_learning_rate(config,i) for i in (0,19999)]
+assert report['cosine_endpoints']==[.001,.00001]
+# The added default gain preserves saved prototype inference exactly.
+torch.set_num_threads(1)
+x=torch.load(study/'seed-0/inputs.pt',weights_only=True)['validation']
+cp=torch.load(study/'seed-0/detail/seed-0/fp32/final.pt',weights_only=True)
+model=make_model(0);model.load_state_dict(cp['model'])
+with torch.no_grad():
+    pred=model(x)
+report['default_gain_preserves_old_predictions']=torch.equal(pred,cp['validation_predictions'])
+(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps({k:v for k,v in report.items() if not k.startswith('gain-')},indent=2))
+for k,v in report.items():
+    if k.startswith('gain-'): print(k,'feature pass',v['feature_checks_pass'],'choices',v['substantial_array_choices'],'switches',len(v['substantial_switches']))

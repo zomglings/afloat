@@ -1,0 +1,7 @@
+{
+  "inference_models": 70,
+  "script_sha256": "c594763e1fa80fcfe6259b57c578724521a763d5a9948451b5b980a3d63ebaed",
+  "source_protocol_sha256": "c34d77ef9818eec40972206ae2f2f31fe8ba4f4b813c42cbe48413e49b0b3112",
+  "threshold_runs": 24,
+  "verified_measurements": 398
+}

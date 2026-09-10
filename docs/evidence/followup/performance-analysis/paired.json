@@ -1,0 +1,98 @@
+[
+  {
+    "adaptive_faster": 0,
+    "control": "fp32",
+    "gain": 1,
+    "paired_confirmation_time_ratios": [
+      6.787393939151402,
+      12.446700784835752,
+      10.624185562165785
+    ],
+    "ratio_of_medians": 10.350773286397775,
+    "seeds": [
+      12,
+      10,
+      11
+    ]
+  },
+  {
+    "adaptive_faster": 3,
+    "control": "fixed-e3m4",
+    "gain": 1,
+    "paired_confirmation_time_ratios": [
+      0.7133801379054302,
+      0.8636000461148771,
+      0.9117376334354331
+    ],
+    "ratio_of_medians": 0.758208115026326,
+    "seeds": [
+      11,
+      12,
+      10
+    ]
+  },
+  {
+    "adaptive_faster": 2,
+    "control": "calibrated",
+    "gain": 1,
+    "paired_confirmation_time_ratios": [
+      0.629425654657483,
+      1.1107647770808722,
+      0.7597440784924048
+    ],
+    "ratio_of_medians": 0.8513248575742939,
+    "seeds": [
+      12,
+      11,
+      10
+    ]
+  },
+  {
+    "adaptive_faster": 0,
+    "control": "fp32",
+    "gain": 4,
+    "paired_confirmation_time_ratios": [
+      11.261019501441359,
+      6.196410005348396,
+      7.017705965872207
+    ],
+    "ratio_of_medians": 7.5139332561575625,
+    "seeds": [
+      11,
+      10,
+      12
+    ]
+  },
+  {
+    "adaptive_faster": 0,
+    "control": "fixed-e3m4",
+    "gain": 4,
+    "paired_confirmation_time_ratios": [
+      1.4024068046516343,
+      1.092057377350702,
+      1.0413541106319304
+    ],
+    "ratio_of_medians": 1.092057377350702,
+    "seeds": [
+      11,
+      12,
+      10
+    ]
+  },
+  {
+    "adaptive_faster": 1,
+    "control": "calibrated",
+    "gain": 4,
+    "paired_confirmation_time_ratios": [
+      1.724847949673438,
+      0.8516887232948908,
+      1.1477024588336397
+    ],
+    "ratio_of_medians": 1.1477024588336397,
+    "seeds": [
+      11,
+      10,
+      12
+    ]
+  }
+]

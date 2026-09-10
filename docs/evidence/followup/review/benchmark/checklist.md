@@ -1,0 +1,6 @@
+- [x] Read benchmark implementation and frozen timing/threshold protocol.
+- [x] Check timing boundaries, checkpoint equality, threshold events, and failures.
+- [x] Reproduce original setup/partial-block failure defects and preserve the original source.
+- [x] Verify corrected timing/accounting, later-case continuation, summary, and manifest handling.
+- [x] Verify threshold streak/censor logic and exact small checkpoint replays.
+- [x] Save findings, source snapshots, reproducible commands, and limits before handoff.

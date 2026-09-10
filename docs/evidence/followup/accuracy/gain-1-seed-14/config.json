@@ -1,0 +1,30 @@
+{
+  "activation_gain": 1.0,
+  "adapt_every": 100,
+  "batch_size": 128,
+  "eval_every": 500,
+  "final_learning_rate": 1e-05,
+  "format_log_every": 100,
+  "input_features": "fourier",
+  "learning_rate": 0.001,
+  "modes": [
+    "fixed-e3m4",
+    "fixed-hybrid",
+    "fp32",
+    "fixed-e4m3",
+    "calibrated",
+    "adaptive",
+    "fixed-e5m2"
+  ],
+  "sample_size": 2048,
+  "save_checkpoints": true,
+  "seeds": [
+    14
+  ],
+  "steps": 20000,
+  "targets": [
+    "detail"
+  ],
+  "threads": 1,
+  "warmup_steps": 50
+}

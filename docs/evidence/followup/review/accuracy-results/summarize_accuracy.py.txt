@@ -1,0 +1,95 @@
+"""Independent descriptive calculations using only standard-library file reads."""
+import argparse
+import csv
+import json
+import statistics
+from collections import Counter
+from pathlib import Path
+
+parser=argparse.ArgumentParser();parser.add_argument('--label',required=True);parser.add_argument('--formats',action='store_true');args=parser.parse_args()
+study=Path('/Users/neeraj/src/zomglings/afloat/runs/followup.KGkx3v/accuracy')
+out=Path(__file__).parent
+protocol=json.loads((study/'protocol.json').read_text());plan=protocol['plan']
+threshold=plan['threshold']
+def passes(r):
+ return r['validation_mse']<threshold['validation_mse_below'] and r['detail_component_relative_mse']<threshold['detail_component_relative_mse_below'] and threshold['detail_amplitude_at_least']<=r['detail_amplitude']<=threshold['detail_amplitude_at_most']
+def threshold_events(rows):
+ streak=[];first=None;confirmation=None
+ for r in rows:
+  streak=streak+[r['step']] if passes(r) else []
+  if len(streak)>=threshold['consecutive_measurements'] and confirmation is None:
+   first=streak[-threshold['consecutive_measurements']];confirmation=r['step']
+ return {'first_crossing_step':first,'confirmation_step':confirmation,'ever_sustained':confirmation is not None,'final_three_pass':all(passes(r) for r in rows[-threshold['consecutive_measurements']:])}
+def stats(v):
+ return {'n':len(v),'mean':statistics.mean(v),'sd':statistics.stdev(v) if len(v)>1 else None,'min':min(v),'max':max(v)}
+finals=[];completed=[];missing=[];raw_counts=Counter();format_counts=Counter();switch_arrays=Counter();preferences=Counter()
+for gain in plan['activation_gains']:
+ for seed in plan['seeds']:
+  name=f'gain-{gain:g}-seed-{seed}';root=study/name
+  if not (root/'summary.json').exists() or not (root/'manifest.json').exists():missing.append(name);continue
+  summary=json.loads((root/'summary.json').read_text())
+  assert summary['status']=='completed' and summary['failures']==[]
+  completed.append(name)
+  progress=[json.loads(l) for l in (root/'progress.jsonl').read_text().splitlines()]
+  assert Counter(r['status'] for r in progress)=={'started':7,'completed':7}
+  raw_counts['progress_records']+=len(progress)
+  raw_counts['manifest_entries']+=len(json.loads((root/'manifest.json').read_text()))
+  for mode in plan['modes']:
+   directory=root/'detail'/f'seed-{seed}'/mode
+   rows=[json.loads(l) for l in (directory/'metrics.jsonl').read_text().splitlines()]
+   assert [r['step'] for r in rows]==list(range(0,plan['steps']+1,plan['eval_every']))
+   assert all(r['mode']==mode and r['seed']==seed and r['target']=='detail' for r in rows)
+   final={**rows[-1],'gain':gain,**threshold_events(rows)}
+   assert all(final[k]==summary['final_metrics'][next(i for i,r in enumerate(summary['final_metrics']) if r['mode']==mode)][k] for k in rows[-1])
+   finals.append(final)
+   raw_counts['metric_rows']+=len(rows)
+   raw_counts['activation_rows']+=sum(1 for _ in (directory/'activations.jsonl').open())
+   raw_counts['measurement_checkpoints']+=len(list(directory.glob('step-*.pt')))
+   raw_counts['final_checkpoints']+=1
+   if args.formats and mode!='fp32':
+    initial=json.loads((root/'detail'/f'seed-{seed}'/'initial-formats.json').read_text())
+    previous=initial.copy();last_strict={}
+    with (directory/'formats.jsonl').open() as stream:
+     for line in stream:
+      e=json.loads(line);format_counts['records']+=1
+      key=e['array']
+      if mode=='adaptive':
+       assert e['changed']==(previous[key]!=e['format']);previous[key]=e['format']
+      if e['changed']:
+       format_counts['label_switches']+=1;format_counts['switches_with_value_changes']+=e['changed_elements']>0
+       format_counts['substantial_switches']+=e['elements']>=32
+       switch_arrays[key]+=1
+      scores=e['candidate_mse']
+      if scores is not None:
+       format_counts['candidate_records']+=1
+       order=sorted(('e4m3','e5m2','e3m4'),key=scores.get);best,second=order[:2]
+       assert e['format']==best
+       if e['elements']>=32:
+        preferences[best]+=1
+        margin=(scores[second]-scores[best])/scores[second] if scores[second] else 0
+        if margin>=.01:
+         format_counts['substantial_strict_observations']+=1
+         if key in last_strict and last_strict[key]!=best:format_counts['periodic_strict_changes']+=1
+         last_strict[key]=best
+summaries=[];pairs=[]
+for gain in plan['activation_gains']:
+ allgain=[r for r in finals if r['gain']==gain]
+ adaptive={r['seed']:r for r in allgain if r['mode']=='adaptive'}
+ for mode in plan['modes']:
+  rows=[r for r in allgain if r['mode']==mode]
+  if not rows:continue
+  summaries.append({'gain':gain,'mode':mode,'seeds':[r['seed'] for r in rows],'validation_mse':stats([r['validation_mse'] for r in rows]),'detail_component_relative_mse':stats([r['detail_component_relative_mse'] for r in rows]),'detail_amplitude':stats([r['detail_amplitude'] for r in rows]),'ever_sustained':sum(r['ever_sustained'] for r in rows),'final_three_pass':sum(r['final_three_pass'] for r in rows),'first_crossings':{r['seed']:r['first_crossing_step'] for r in rows},'confirmations':{r['seed']:r['confirmation_step'] for r in rows}})
+  if mode=='adaptive':continue
+  for metric in ('validation_mse','detail_component_relative_mse'):
+   differences=[adaptive[r['seed']][metric]-r[metric] for r in rows]
+   pairs.append({'gain':gain,'control':mode,'metric':metric,'seeds':[r['seed'] for r in rows],'adaptive_over_control':[adaptive[r['seed']][metric]/r[metric] for r in rows],'differences':differences,'ratio_of_means':statistics.mean(adaptive[r['seed']][metric] for r in rows)/statistics.mean(r[metric] for r in rows),'wins':sum(v<0 for v in differences),'ties':sum(v==0 for v in differences),'losses':sum(v>0 for v in differences)})
+completion=json.loads((study/'completion.json').read_text()) if (study/'completion.json').exists() else None
+if completion is not None:assert not missing and len(completion['outcomes'])==10 and all(r['exit_code']==0 for r in completion['outcomes'])
+result={'completion':completion,'completed_groups':completed,'missing_groups':missing,'completed_conditions':len(finals),'raw_counts':dict(raw_counts),'format_counts':dict(format_counts),'switch_arrays':dict(switch_arrays),'substantial_candidate_winners':dict(preferences),'summaries':summaries,'paired':pairs,'finals':finals}
+(out/f'{args.label}.json').write_text(json.dumps(result,indent=2)+'\n')
+with (out/f'{args.label}-summary.csv').open('w',newline='') as f:
+ w=csv.writer(f);w.writerow(['gain','mode','n','validation_mean','validation_sd','component_mean','component_sd','ever_sustained','final_three_pass'])
+ for r in summaries:w.writerow([r['gain'],r['mode'],r['validation_mse']['n'],r['validation_mse']['mean'],r['validation_mse']['sd'],r['detail_component_relative_mse']['mean'],r['detail_component_relative_mse']['sd'],r['ever_sustained'],r['final_three_pass']])
+print('Completed',len(completed),'groups;',len(finals),'conditions; missing',missing)
+for r in summaries:print(r['gain'],r['mode'],'n',r['validation_mse']['n'],'MSE',r['validation_mse']['mean'],'+/-',r['validation_mse']['sd'],'component',r['detail_component_relative_mse']['mean'],'+/-',r['detail_component_relative_mse']['sd'],'threshold',r['ever_sustained'],r['final_three_pass'])
+print('Counts',dict(raw_counts),dict(format_counts))

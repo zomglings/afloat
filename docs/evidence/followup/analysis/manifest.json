@@ -1,0 +1,19 @@
+{
+  "activation-summary.json": "ee01ca4dcb0956b57428249bfd3bac4a718340436c74947869e08687343f6ddf",
+  "activations.csv": "88a6d76c675db755eb173251771cf0954b9047115740602595dc15ef0ff3152a",
+  "analysis-source.py": "557c76099805af8f2704d6773099a6398dc3f4806ea54dd32091b5f0f7fd80e8",
+  "benchmark_followup.py": "78cfd75c73d24125c7dbdc4a6e510898d68bbd50b99ae1ec6c96ae49560036e5",
+  "candidate_scores.csv": "67cc7cdef390ed96b3225d6696a2eb83b645d37ec374a1434acc743b220f850b",
+  "finals.csv": "06faa123b5ef95b01ff5b5ca276e53784f47d191dbfdba4e5e05b48d78222cf3",
+  "format_counts.csv": "64eab7e844149830859a828b1890ca3976a013b671ef445ef78ca2193a5888f6",
+  "formats.csv": "a12a8d61ec650f103d4736dfca80d82065b1c8a79e3f5fc8815f1ec8dac2c08e",
+  "initial_candidates.json": "321291332e4a351393ac8e8e50b245b88efe812ccb6f200736b0f49e3e769d75",
+  "learning-curves.png": "883b7dd7fdbc170a4f610b8d811bf0f913958a4a15ee73fd29043ba912bbb6aa",
+  "metrics.csv": "8f6a159bb5c9f53dcc5b095106cb5966df5af7259c01cf89b21426d7f0ba721e",
+  "paired.json": "86583b7495b725a8c2d9b2278829217bc241da9ff5d28958107cdd39bade2d50",
+  "provenance.json": "0b08f0f1f13414488aad453c877f4b30dec29f9e367f7dbb1211731a3b86c4cb",
+  "strict_preference_changes.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+  "summary.json": "aae42086fc191c5c08d78ae72fe9b3ba40e581420ab8b29e8bd58e74cbc9d83d",
+  "switches.json": "95f661b1fbed84d891709501e03a8ca1da225027968d67a3bd690e6b51d381bd",
+  "verification.json": "6f1fa3c371aebea38d4e89e6c016476d3e8c3014dfb30171bb5f839a43e02df9"
+}

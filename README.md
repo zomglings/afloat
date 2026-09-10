@@ -19,6 +19,12 @@ The [prototype results](proto-results.md) report all 108 full-study runs and
 separate CPU training and inference measurements. Repeated selection did not
 consistently beat choosing once; format changes were confined to the output bias.
 
+The [follow-up results](followup-results.md) add fixed E3M4, 11 development runs,
+70 fresh comparisons, and time to a shared accuracy target. A fixed sine/cosine
+input representation makes the small feature learnable. Repeated selection still
+shows no consistent advantage, and no substantial array changes its preferred
+format. The report includes CPU training and inference measurements.
+
 ## Run
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:

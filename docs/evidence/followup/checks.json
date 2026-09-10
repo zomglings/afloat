@@ -1,0 +1,68 @@
+{
+  "analysis": {
+    "activation_records": 25830,
+    "candidate_records": 63680,
+    "final_models_exact": 70,
+    "manifest_entries_verified": 3370,
+    "measurement_rows": 2870,
+    "retained_format_records": 385920
+  },
+  "checked_python_file_hashes": {
+    "docs/evidence/followup/analysis/analysis-source.py": "557c76099805af8f2704d6773099a6398dc3f4806ea54dd32091b5f0f7fd80e8",
+    "docs/evidence/followup/analysis/benchmark_followup.py": "78cfd75c73d24125c7dbdc4a6e510898d68bbd50b99ae1ec6c96ae49560036e5",
+    "docs/evidence/followup/development-analysis/summary-source.py": "edd1dda4c8c643a4fb0c506d15c386725a40ec6d6a3a9b2df6acae7bb53bb916",
+    "docs/evidence/followup/performance-analysis/summary-source.py": "c594763e1fa80fcfe6259b57c578724521a763d5a9948451b5b980a3d63ebaed",
+    "docs/evidence/followup/performance/benchmark-source.py": "78cfd75c73d24125c7dbdc4a6e510898d68bbd50b99ae1ec6c96ae49560036e5",
+    "docs/evidence/full-study/performance/benchmark-source.py": "87163a4c92bac915c813899a02bb989bd8b074725bbc43e89c9e1d8a16eec8f1",
+    "scripts/analyze_followup.py": "557c76099805af8f2704d6773099a6398dc3f4806ea54dd32091b5f0f7fd80e8",
+    "scripts/analyze_study.py": "c1319a80bdffc05b7edbe5a9c5368d67cb390e62235b47da68e7b77febb5711d",
+    "scripts/benchmark_followup.py": "78cfd75c73d24125c7dbdc4a6e510898d68bbd50b99ae1ec6c96ae49560036e5",
+    "scripts/benchmark_study.py": "5a72f5ee66db64499a3d6abb0c0f6cdf1c55864554b4f67dcd402fd96c6df37f",
+    "scripts/run_development.py": "995dd405b5aee53e9a5221559dc80cd4e0040b53635b8de1ca61addaa511611e",
+    "scripts/run_followup.py": "ce49d30406b1352f4cea862f9f4588bb41a8652e32c8a14f9606f448a5c6dc2f",
+    "scripts/run_study.py": "f81a921741065cbbb0b67c59f35bc6753aecaee0dfe323795c7e2bcdd58d457b",
+    "scripts/run_synthetic.py": "8ea20c4e9e09504a1f45ba33083de3ff8f77c6609b9d7b367cf755435e2524fe",
+    "scripts/summarize_development.py": "edd1dda4c8c643a4fb0c506d15c386725a40ec6d6a3a9b2df6acae7bb53bb916",
+    "scripts/summarize_followup_performance.py": "c594763e1fa80fcfe6259b57c578724521a763d5a9948451b5b980a3d63ebaed",
+    "src/afloat/__init__.py": "d6c939b6209472a10ed7d5914cd89b118d21630b4c542ce56e5a5cde2f03366b",
+    "src/afloat/artifacts.py": "e56bfd450f111c5653c0924f991ece85e4ca69ad3d8cf6c17b8a983ab3ec9289",
+    "src/afloat/cli.py": "19116f77c73f8ff6d92c75f271d64d3d22da220f177819a2abe31b1d711365b5",
+    "src/afloat/diagnostics.py": "1386dc0753bd5e82c54b18c62240bef8a0bf29a987302608a91881a4e0398ae1",
+    "src/afloat/formats.py": "5e9e3fb6eba4946f9acfd3a94ea32951acd5801e7aa9e584d00fe00166e113f5",
+    "src/afloat/model.py": "8a7e09d47262be96df55d86381f8e68aebc0de89bd05d29626c5c1dd736600eb",
+    "src/afloat/plotting.py": "35ae4d50fd73f7a0ccb52d81e8ccb48ce0e9d7414cfbede74edafcc13bd0b330",
+    "src/afloat/runner.py": "6ec6c84b14a418aacc7b95a34eeff9efeadc398f921802b18f07d90eb6b05b1f",
+    "src/afloat/targets.py": "c2492bf303b0efdfd0ce81d1f746559cbab82231f687dfeb3046fb57a8211fee",
+    "tests/test_followup.py": "96a831f8fa52157d23646da41cd3a7c2e185684d70bcc367ef7dfd77f48c530b",
+    "tests/test_followup_benchmark.py": "681f6492da8f8364d1edd23cf7d33a89bdb091c42910385d5a80271ac961efd0",
+    "tests/test_formats.py": "a2196f7aa65be70efa5c63b7d57b2697bd988fa87e5e7d64b20b9c9756099915",
+    "tests/test_network.py": "1f14212b9599f674a751c02c35f2fd662bc50fa4dca0435cdfd433f4c1d3c78c",
+    "tests/test_runner.py": "08b7ea6f322cba5cceb9f73d0f54c7253f8e94053fcbb259b1b5efa75e0e0582"
+  },
+  "git diff --cached --check": {
+    "archived_csv_crlf_and_diff_context_preserved": true,
+    "exit_code": 0
+  },
+  "make check": {
+    "exit_code": 0,
+    "mypy_source_files": 9,
+    "ruff_format_files": 43,
+    "ruff_lint": "passed",
+    "tests_passed": 51
+  },
+  "make smoke": {
+    "completed_modes": 7,
+    "exit_code": 0,
+    "output": "runs/smoke.YlLf2s/result"
+  },
+  "portable_development_check": "seed 777, Fourier inputs, gain 1, 20 updates, completed",
+  "portable_synthetic_check": "exact equality with original synthetic results",
+  "required_checks_omitted": [],
+  "serial_performance": {
+    "exact_measurement_checks": 398,
+    "inference_models": 70,
+    "numerical_failures": 0,
+    "reached": 24,
+    "threshold_replays": 24
+  }
+}

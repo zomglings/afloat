@@ -1,0 +1,14 @@
+{
+  "array_elements": 1536,
+  "scope": "synthetic reconstruction only",
+  "score": "full-array mean squared error",
+  "selection_every_stage": true,
+  "stages": [
+    "narrow",
+    "small-1e-2",
+    "small-1e-4",
+    "small-1e-6",
+    "narrow-again"
+  ],
+  "strict_margin": 0.01
+}

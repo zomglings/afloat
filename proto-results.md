@@ -399,3 +399,8 @@ arrays actually change preferred formats before asking whether those changes
 improve held-out approximation. More fresh seeds and a time-to-accuracy comparison
 would then address reliability and practical cost. Hardware speed remains a
 separate, unmeasured question.
+
+The [completed follow-up](followup-results.md) implements these controls and
+reports all development attempts, 70 fresh comparisons, serial time to accuracy,
+and inference. It makes the small feature learnable through explicit input
+features, but still finds no substantial training array changing preferred format.
