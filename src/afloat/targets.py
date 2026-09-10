@@ -38,6 +38,17 @@ def validation_inputs() -> Tensor:
     return torch.cartesian_prod(axis, axis)
 
 
+def detail_component_error(prediction: Tensor) -> float:
+    """Measure x2-dependent error on the fixed validation grid; absence scores one."""
+    if prediction.shape != (65 * 65, 1):
+        raise ValueError("Detail component measurement requires the 65-by-65 grid")
+    truth = target_values("detail", validation_inputs()).reshape(65, 65).double()
+    predicted = prediction.detach().reshape(65, 65).double()
+    reference = truth - truth.mean(dim=1, keepdim=True)
+    observed = predicted - predicted.mean(dim=1, keepdim=True)
+    return float((observed - reference).square().mean() / reference.square().mean())
+
+
 def feature_metrics(name: str, x: Tensor, prediction: Tensor) -> dict[str, float]:
     errors = (prediction - target_values(name, x)).square().flatten()
     a, b = x[:, 0], x[:, 1]

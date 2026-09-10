@@ -15,7 +15,7 @@ import torch
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from afloat.formats import MODES
+from afloat.formats import PROTOTYPE_MODES as MODES
 from afloat.targets import TARGETS, feature_metrics, target_values
 
 
@@ -77,6 +77,14 @@ def verify_runs(study):
     for seed in range(3):
         root = study / f"seed-{seed}"
         config = read_json(root / "config.json")
+        for name, default in (
+            ("activation_gain", 1.0),
+            ("final_learning_rate", None),
+            ("input_features", "raw"),
+            ("format_log_every", 1),
+            ("save_checkpoints", False),
+        ):
+            assert config.pop(name, default) == default
         assert config == {**expected, "seeds": [seed]}
         env = read_json(root / "environment.json")
         assert (

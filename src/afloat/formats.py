@@ -47,7 +47,15 @@ FORMATS = {
     "e5m2": FloatFormat("e5m2", 5, 2),
     "e3m4": FloatFormat("e3m4", 3, 4),
 }
-MODES = ("fp32", "fixed-e4m3", "fixed-e5m2", "fixed-hybrid", "calibrated", "adaptive")
+PROTOTYPE_MODES = (
+    "fp32",
+    "fixed-e4m3",
+    "fixed-e5m2",
+    "fixed-hybrid",
+    "calibrated",
+    "adaptive",
+)
+MODES = (*PROTOTYPE_MODES, "fixed-e3m4")
 
 
 def array_scale(x: Tensor, fmt: FloatFormat) -> float:
@@ -89,7 +97,7 @@ def quantize(x: Tensor, fmt: FloatFormat, scale: float | None = None) -> Tensor:
     return result
 
 
-def choose_format(x: Tensor, sample_size: int = 2048) -> str:
+def format_scores(x: Tensor, sample_size: int = 2048) -> dict[str, float]:
     if sample_size <= 0:
         raise ValueError("sample_size must be positive")
     flat = x.detach().flatten()
@@ -98,6 +106,11 @@ def choose_format(x: Tensor, sample_size: int = 2048) -> str:
     for name, fmt in FORMATS.items():
         rounded = quantize(sample, fmt, array_scale(x, fmt))
         scores[name] = float((sample.double() - rounded.double()).square().mean())
+    return scores
+
+
+def choose_format(x: Tensor, sample_size: int = 2048) -> str:
+    scores = format_scores(x, sample_size)
     return min(scores, key=lambda name: scores[name])
 
 
@@ -121,15 +134,18 @@ class FormatPolicy:
             return x.detach()
         key = f"{kind}:{name}"
         changed = False
+        scores: dict[str, float] | None = None
         if self.mode.startswith("fixed-"):
             choice = self.mode.removeprefix("fixed-")
             if choice == "hybrid":
                 choice = "e4m3" if kind == "weight" else "e5m2"
         else:
             choice = self.choices[key]
+            previous_choice = choice
             if self.mode == "adaptive" and step > 0 and step % self.interval == 0:
                 started = perf_counter()
-                selected = choose_format(x, self.sample_size)
+                scores = format_scores(x, self.sample_size)
+                selected = min(scores, key=lambda name: scores[name])
                 self.selection_seconds += perf_counter() - started
                 changed = selected != choice
                 choice = selected
@@ -137,6 +153,14 @@ class FormatPolicy:
         fmt = FORMATS[choice]
         scale = array_scale(x, fmt)
         rounded = quantize(x, fmt, scale)
+        changed_elements = 0
+        rounding_change_mse = 0.0
+        if changed:
+            previous = quantize(x, FORMATS[previous_choice])
+            changed_elements = int((previous != rounded).sum())
+            rounding_change_mse = float(
+                (previous.double() - rounded.double()).square().mean()
+            )
         self.events.append(
             {
                 "step": step,
@@ -148,6 +172,9 @@ class FormatPolicy:
                 "zeroed": int(((x.detach() != 0) & (rounded == 0)).sum()),
                 "clipped": int((x.detach().abs() / scale > fmt.levels()[-1]).sum()),
                 "elements": x.numel(),
+                "candidate_mse": scores,
+                "changed_elements": changed_elements,
+                "rounding_change_mse": rounding_change_mse,
             }
         )
         return rounded

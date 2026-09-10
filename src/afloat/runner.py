@@ -18,6 +18,7 @@ from afloat.formats import MODES, FormatPolicy, choose_format
 from afloat.model import make_model
 from afloat.targets import (
     TARGETS,
+    detail_component_error,
     feature_metrics,
     sample_inputs,
     target_values,
@@ -38,6 +39,11 @@ class RunConfig:
     adapt_every: int = 100
     sample_size: int = 2048
     threads: int = 1
+    activation_gain: float = 1.0
+    final_learning_rate: float | None = None
+    input_features: str = "raw"
+    format_log_every: int = 1
+    save_checkpoints: bool = False
 
     def validate(self) -> None:
         for values, allowed in ((self.targets, TARGETS), (self.modes, MODES)):
@@ -62,6 +68,7 @@ class RunConfig:
             self.adapt_every,
             self.sample_size,
             self.threads,
+            self.format_log_every,
         ):
             if value <= 0:
                 raise ValueError(
@@ -73,6 +80,29 @@ class RunConfig:
             or self.learning_rate <= 0
         ):
             raise ValueError("Invalid warmup or learning rate")
+        if not math.isfinite(self.activation_gain) or self.activation_gain <= 0:
+            raise ValueError("Activation gain must be finite and positive")
+        if self.input_features not in ("raw", "fourier"):
+            raise ValueError("Unknown input features")
+        if self.final_learning_rate is not None and (
+            not math.isfinite(self.final_learning_rate)
+            or not 0 < self.final_learning_rate <= self.learning_rate
+        ):
+            raise ValueError(
+                "Final learning rate must be positive and no larger than initial"
+            )
+
+
+def update_learning_rate(config: RunConfig, step: int) -> float:
+    if config.final_learning_rate is None:
+        return config.learning_rate
+    fraction = step / max(1, config.steps - 1)
+    return (
+        config.final_learning_rate
+        + (config.learning_rate - config.final_learning_rate)
+        * (1 + math.cos(math.pi * fraction))
+        / 2
+    )
 
 
 def training_batch(seed: int, step: int, size: int) -> Tensor:
@@ -82,7 +112,7 @@ def training_batch(seed: int, step: int, size: int) -> Tensor:
 def warmup(
     config: RunConfig, target: str, seed: int
 ) -> tuple[nn.Sequential, torch.optim.Adam, dict[str, str], float]:
-    model = make_model(seed)
+    model = make_model(seed, config.activation_gain, config.input_features)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
     for step in range(config.warmup_steps):
         x = training_batch(seed, step, config.batch_size)
@@ -173,9 +203,19 @@ def run_condition(
     initial_selection = (
         calibration_seconds if mode in ("calibrated", "adaptive") else 0.0
     )
+    training_seconds = 0.0
+    diagnostic_seconds = 0.0
 
     def measure(step: int, training: dict[str, object]) -> None:
         metrics, parameters = evaluate(model, policy, target, validation)
+        if target == "detail":
+            with torch.no_grad():
+                prediction = functional_call(
+                    model, parameters, (validation,), strict=True
+                )
+            metrics["detail_component_relative_mse"] = detail_component_error(
+                prediction
+            )
         row: dict[str, object] = {
             "target": target,
             "seed": seed,
@@ -185,6 +225,8 @@ def run_condition(
             "initial_calibration_seconds": initial_selection,
             "reselection_seconds": policy.selection_seconds,
             "selection_seconds": initial_selection + policy.selection_seconds,
+            "training_seconds": training_seconds,
+            "gradient_probe_seconds": diagnostic_seconds,
             **training,
             **metrics,
         }
@@ -192,9 +234,26 @@ def run_condition(
         append_json(output / "metrics.jsonl", row)
         for activation in activation_statistics(model, parameters, probes):
             append_json(output / "activations.jsonl", {"step": step, **activation})
+        if config.save_checkpoints:
+            torch.save(
+                {
+                    "model": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "format_choices": policy.choices,
+                    "step": step,
+                    "model_settings": {
+                        "activation_gain": config.activation_gain,
+                        "input_features": config.input_features,
+                    },
+                },
+                output / f"step-{step}.pt",
+            )
 
     measure(0, {})
     for step in range(config.steps):
+        update_started = perf_counter()
+        for group in optimizer.param_groups:
+            group["lr"] = update_learning_rate(config, step)
         x = training_batch(seed, config.warmup_steps + step, config.batch_size)
         optimizer.zero_grad(set_to_none=True)
         parameters = {}
@@ -222,14 +281,24 @@ def run_condition(
         original = torch.cat(original_gradients).double()
         rounded = torch.cat(rounded_gradients).double()
         should_measure = (step + 1) % config.eval_every == 0 or step + 1 == config.steps
+        probe_started = perf_counter()
         gradient_metrics = (
             gradient_comparison(model, target, x, original, rounded)
             if should_measure
             else {}
         )
+        probe_seconds = perf_counter() - probe_started if should_measure else 0.0
+        diagnostic_seconds += probe_seconds
         optimizer.step()
+        training_seconds += perf_counter() - update_started - probe_seconds
         for event in policy.events:
-            append_json(output / "formats.jsonl", event)
+            if (
+                step % config.format_log_every == 0
+                or step == config.steps - 1
+                or event["changed"]
+                or event["candidate_mse"] is not None
+            ):
+                append_json(output / "formats.jsonl", event)
         policy.events.clear()
         if should_measure:
             measure(
@@ -255,6 +324,10 @@ def run_condition(
             "validation_predictions": predictions,
             "mode": mode,
             "steps": config.steps,
+            "model_settings": {
+                "activation_gain": config.activation_gain,
+                "input_features": config.input_features,
+            },
         },
         output / "final.pt",
     )
@@ -274,15 +347,21 @@ def run_experiment(config: RunConfig, output: Path) -> Path:
     torch.save({"validation": validation, "probes": probes}, output / "inputs.pt")
     records: list[dict[str, object]] = []
     failures: list[dict[str, object]] = []
-    model_spec = make_model(config.seeds[0])
+    model_spec = make_model(
+        config.seeds[0], config.activation_gain, config.input_features
+    )
     try:
         for target in config.targets:
             for seed in config.seeds:
                 group = output / target / f"seed-{seed}"
                 group.mkdir(parents=True)
                 try:
+                    warmup_started = perf_counter()
                     base, optimizer, choices, calibration_seconds = warmup(
                         config, target, seed
+                    )
+                    warmup_seconds = (
+                        perf_counter() - warmup_started - calibration_seconds
                     )
                 except FloatingPointError as error:
                     write_json(group / "failure.json", {"message": str(error)})
@@ -304,7 +383,13 @@ def run_experiment(config: RunConfig, output: Path) -> Path:
                     group / "initial.pt",
                 )
                 write_json(group / "initial-formats.json", choices)
-                write_json(group / "calibration.json", {"seconds": calibration_seconds})
+                write_json(
+                    group / "calibration.json",
+                    {
+                        "seconds": calibration_seconds,
+                        "warmup_seconds": warmup_seconds,
+                    },
+                )
                 for mode in config.modes:
                     print(f"{target} seed={seed} mode={mode}", flush=True)
                     append_json(

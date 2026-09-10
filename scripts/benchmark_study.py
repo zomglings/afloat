@@ -19,7 +19,8 @@ import torch
 from torch.func import functional_call
 from torch.utils.benchmark import Timer
 
-from afloat.formats import MODES, FormatPolicy
+from afloat.formats import PROTOTYPE_MODES as MODES
+from afloat.formats import FormatPolicy
 from afloat.model import make_model
 from afloat.runner import evaluate, rounded_parameters, training_batch
 from afloat.targets import TARGETS, sample_inputs, target_values

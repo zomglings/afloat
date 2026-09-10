@@ -1,0 +1,50 @@
+{
+  "stage": "frozen after development and before fresh seeds",
+  "target": "detail",
+  "input_features": "fourier",
+  "activation_gains": [1.0, 4.0],
+  "seeds": [10, 11, 12, 13, 14],
+  "modes": ["fp32", "fixed-e3m4", "fixed-e4m3", "fixed-e5m2", "fixed-hybrid", "calibrated", "adaptive"],
+  "steps": 20000,
+  "warmup_steps": 50,
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "final_learning_rate": 0.00001,
+  "adapt_every": 100,
+  "eval_every": 500,
+  "format_log_every": 100,
+  "sample_size": 2048,
+  "save_checkpoints": true,
+  "threads": 1,
+  "accuracy_processes": 3,
+  "primary_outcomes": ["final validation MSE", "final isolated small-component relative MSE"],
+  "paired_controls": ["fixed-e3m4", "calibrated", "fixed-e4m3", "fixed-e5m2", "fixed-hybrid", "fp32"],
+  "threshold": {
+    "validation_mse_below": 0.0001,
+    "detail_component_relative_mse_below": 0.25,
+    "detail_amplitude_at_least": 0.008,
+    "detail_amplitude_at_most": 0.012,
+    "consecutive_measurements": 3
+  },
+  "substantial_array": {
+    "minimum_elements": 32,
+    "minimum_relative_score_margin": 0.01,
+    "require_same_array_to_change_strict_preference_over_time": true
+  },
+  "performance": {
+    "processes": 1,
+    "threads": 1,
+    "threshold_seeds": [10, 11, 12],
+    "threshold_modes": ["fp32", "fixed-e3m4", "calibrated", "adaptive"],
+    "threshold_stopping_rule": "Stop on third consecutive passing validation, or at 20000 updates; retain every miss.",
+    "inference_seeds": [10, 11, 12, 13, 14],
+    "inference_modes": "all seven",
+    "inference_batches": [1, 128],
+    "inference_min_measurement_seconds": 0.1,
+    "include_weight_preparation_separately": true,
+    "timing_order_seed": 918
+  },
+  "accuracy_stopping_rule": "Complete all 70 conditions at 20000 updates. Retain failures and unfavorable outcomes; do not extend or select checkpoints based on final results.",
+  "development_outcome": "Both gains pass the feature check at 20000 updates on development seeds 100 and 101. The 6000-update budget fails gain 4 on seed 100, so retain 20000 for both. No substantial training array changes strict preference in development; synthetic range changes do switch formats. Final training claims remain limited by this missing adaptation opportunity.",
+  "scope": "The original target with a fixed sine/cosine input representation; FP32 arithmetic, optimizer, activations and master weights. No native eight-bit hardware speed claim."
+}

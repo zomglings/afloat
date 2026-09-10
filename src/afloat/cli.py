@@ -29,6 +29,11 @@ def main() -> None:
     run.add_argument("--adapt-every", type=int, default=100)
     run.add_argument("--sample-size", type=int, default=2048)
     run.add_argument("--threads", type=int, default=1)
+    run.add_argument("--activation-gain", type=float, default=1.0)
+    run.add_argument("--final-learning-rate", type=float)
+    run.add_argument("--input-features", choices=("raw", "fourier"), default="raw")
+    run.add_argument("--format-log-every", type=int, default=1)
+    run.add_argument("--save-checkpoints", action="store_true")
     plot = commands.add_parser("plot", help="Regenerate a run's loss plot")
     plot.add_argument("output", type=Path)
     plot.add_argument("--destination", type=Path)
@@ -62,6 +67,11 @@ def main() -> None:
         adapt_every=args.adapt_every,
         sample_size=args.sample_size,
         threads=args.threads,
+        activation_gain=args.activation_gain,
+        final_learning_rate=args.final_learning_rate,
+        input_features=args.input_features,
+        format_log_every=args.format_log_every,
+        save_checkpoints=args.save_checkpoints,
     )
     print(run_experiment(config, args.output))
 

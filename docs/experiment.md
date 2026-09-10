@@ -60,6 +60,7 @@ the entire array. Validation examples never select the format.
 | fixed-hybrid | E4M3FN for weights; E5M2 for gradients |
 | calibrated | Choose once from the three candidates after warmup |
 | adaptive | Start with the same choices as calibrated; reselect periodically |
+| fixed-e3m4 | E3M4 for weights and gradients; added for the follow-up |
 
 All eight-bit conditions reserve the same conceptual storage: eight bits per
 element, 32 bits per scale, and two bits per array for a format identifier.
@@ -135,6 +136,38 @@ cannot establish hardware speed or energy savings.
 - Add gradually changing targets as a separate adaptation-speed experiment.
 - Run controlled activation gain sweeps and single-activation network controls.
 - Test a hardware implementation only after evidence of a numerical benefit.
+
+## Follow-up controls
+
+The [follow-up plan](followup-plan.md) records development decisions, and the
+[frozen protocol](followup-protocol.json) specifies the next comparison. The
+original six-condition study remains unchanged in its saved evidence. New CLI
+runs include fixed E3M4 by default; the original-study scripts explicitly retain
+their six conditions.
+
+`--activation-gain` multiplies inputs to each ReLU, tanh, and SiLU group; its
+default of one preserves the original network. `--input-features fourier` adds
+fixed sine and cosine features at frequencies 1, 2, 4, and 8 times pi for each
+coordinate. This raises the parameter count from 9,585 to 10,097 and makes the
+original oscillatory target available as a combination of input features. It
+tests learning that combination, not discovery of those frequencies from raw
+coordinates. The default input representation remains raw coordinates.
+
+`--final-learning-rate` enables cosine decay across the declared number of
+updates; omitting it preserves the constant rate. `--format-log-every` samples
+routine rounding records while always retaining actual switches and candidate
+scores at reselection. Its default of one logs every update. Switch records
+include the number of values changed by switching formats and the squared
+difference between old and new rounded values on the same current array.
+
+`--save-checkpoints` stores model and optimizer state at every validation step.
+New checkpoints include the model settings needed to reconstruct the input
+representation and activation gain. The fixed-grid detail measurement now also
+records isolated small-component relative error. `training_seconds` sums update
+work, including rounding statistics, but excludes gradient reference probes,
+validation, file writes, and checkpoint saving. Those exclusions distinguish
+it from `elapsed_seconds`; neither is an isolated speed measurement when
+multiple training processes run concurrently.
 
 ## Prior work and implementation references
 

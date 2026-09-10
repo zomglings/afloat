@@ -79,6 +79,13 @@ def test_selection_tracks_distribution_shape_and_calibration_stays_fixed():
     assert adaptive.choices["weight:test"] == wide_choice
     assert calibrated.choices["weight:test"] == narrow_choice
     assert choices["weight:test"] == narrow_choice
+    switched = adaptive.events[-1]
+    old = quantize(wide, FORMATS[narrow_choice])
+    new = quantize(wide, FORMATS[wide_choice])
+    assert switched["changed_elements"] == int((old != new).sum()) > 0
+    assert switched["rounding_change_mse"] == float(
+        (old.double() - new.double()).square().mean()
+    )
 
 
 def test_fixed_and_customized_formats_share_identical_scaling():
